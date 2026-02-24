@@ -21,6 +21,7 @@
 
 # ── 표준 라이브러리 ──────────────────────────────────────────────────
 import io
+import json
 import os
 import re
 import zipfile
@@ -99,6 +100,27 @@ MAX_SCHOLARS: int = 50
 
 # 졸업 기준 학점 기본값 (학교별 상이하므로 추출 실패 시 사용)
 DEFAULT_GRADUATION_CREDITS: float = 120.0
+
+# 이전 선발자 제외 명단 저장 파일 (중복 선발 방지)
+_EXCLUDED_FILE: str = "excluded_names.json"
+
+
+def load_excluded_names() -> set:
+    """이전 선발 명단을 JSON 파일에서 불러옴"""
+    try:
+        with open(_EXCLUDED_FILE, "r", encoding="utf-8") as f:
+            return set(json.load(f))
+    except Exception:
+        return set()
+
+
+def save_excluded_names(names: set) -> None:
+    """이전 선발 명단을 JSON 파일에 저장"""
+    try:
+        with open(_EXCLUDED_FILE, "w", encoding="utf-8") as f:
+            json.dump(sorted(names), f, ensure_ascii=False, indent=2)
+    except Exception:
+        pass
 
 
 # ──────────────────────────────────────────────────────────────────────
@@ -628,7 +650,7 @@ class DocumentProcessor:
 # 최종 선발 함수 — 동점자 처리 포함
 # ──────────────────────────────────────────────────────────────────────
 def select_scholars(
-    applicants: List[ApplicantData], n: int = MAX_SCHOLARS
+    applicants: List[ApplicantData], n: int = MAX_SCHOLARS, excluded: set = None
 ) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """
     자격 요건(자립지원 대상자 확인서) 충족자 중 점수 상위 n명을 선발.
@@ -638,9 +660,15 @@ def select_scholars(
       2순위: 상급 학년  (높을수록 우선)
       3순위: 전체 평점  (높을수록 우선)
 
+    excluded: 이전 선발자 이름 집합 — 해당 인원은 선발 대상에서 제외
+
     반환: (선발자 DataFrame, 전체 자격자 DataFrame)
     """
-    eligible = [a for a in applicants if a.is_eligible]
+    excluded = excluded or set()
+    for a in applicants:
+        if a.name in excluded:
+            a.parse_notes.insert(0, "⛔ 이전 선발자 — 중복 선발 제외")
+    eligible = [a for a in applicants if a.is_eligible and a.name not in excluded]
 
     if not eligible:
         return pd.DataFrame(), pd.DataFrame()
@@ -875,6 +903,16 @@ def main() -> None:
             help="자립준비청년 지원 자격 검증을 위한 필수 서류입니다.",
         )
         st.markdown("---")
+        st.markdown("## 🔁 중복 선발 방지")
+        _excl_set = load_excluded_names()
+        if _excl_set:
+            st.warning(f"이전 선발자 **{len(_excl_set)}명**은 이번 선발에서 자동 제외됩니다.")
+            if st.button("🗑️ 이전 명단 초기화", key="clear_excluded", use_container_width=True):
+                save_excluded_names(set())
+                st.rerun()
+        else:
+            st.info("이전 선발자 없음 (첫 선발 또는 초기화됨)")
+        st.markdown("---")
         st.caption(
             "🔒 개인정보보호법 준수\n"
             "주민등록번호 뒷자리 등 민감 정보는\n"
@@ -961,7 +999,13 @@ def main() -> None:
                     )
                     st.stop()
 
-                sel_df, all_df = select_scholars(applics, MAX_SCHOLARS)
+                excl = load_excluded_names()
+                sel_df, all_df = select_scholars(applics, MAX_SCHOLARS, excl)
+
+                # 이번에 선발된 인원을 이전 선발 명단에 추가 (중복 선발 방지)
+                if not sel_df.empty:
+                    new_excl = excl | set(sel_df["성명"].tolist())
+                    save_excluded_names(new_excl)
 
                 progress.progress(95, text="결과 저장 중...")
                 st.session_state.update(

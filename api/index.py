@@ -5,6 +5,7 @@
 """
 
 import io
+import json
 import os
 import re
 import math
@@ -131,6 +132,12 @@ _INDEX_HTML = r"""<!DOCTYPE html>
               </ul>
               <div class="alert alert-warning py-2 mb-0 small"><i class="bi bi-shield-lock"></i> 주민번호 등 민감 정보는 추출 즉시 마스킹됩니다.</div>
             </div>
+          </div>
+        </div>
+        <div class="col-12">
+          <div class="d-flex align-items-center gap-2 p-2 border rounded bg-white">
+            <div class="flex-grow-1" id="excludeStatus"></div>
+            <button class="btn btn-outline-danger btn-sm d-none" id="excludeClearBtn" onclick="clearExcluded()"><i class="bi bi-x-circle"></i> 초기화</button>
           </div>
         </div>
         <div class="col-12">
@@ -278,6 +285,7 @@ async function uploadFile() {
 async function runDemo() { await callAPI('/api/demo', new FormData(), '데모 데이터로 분석 중...'); }
 
 async function callAPI(url, body, msg='서류를 분석하고 있습니다...') {
+  if(url==='/api/upload') { body.append('excluded_names', JSON.stringify([...loadExcluded()])); }
   setLoading(true, msg); clearAlert();
   try {
     const res  = await fetch(url, {method:'POST', body});
@@ -293,6 +301,7 @@ async function callAPI(url, body, msg='서류를 분석하고 있습니다...') 
 function applyData(data) {
   G.selected=data.results||[]; G.all=data.all_results||[];
   G.stats=data.stats||{}; G.warnings=data.warnings||[]; G.log=data.log||'';
+  if(!data.is_demo && G.selected.length>0) addToExcluded(G.selected.map(r=>r['성명']));
   renderResult(data); renderStats(data.stats);
   if(G.log){ document.getElementById('logContent').textContent=G.log; document.getElementById('logSection').classList.remove('d-none'); }
 }
@@ -370,6 +379,26 @@ function setLoading(on,msg=''){document.getElementById('loadingSection').style.d
 function showAlert(type,html){document.getElementById('alertBox').innerHTML='<div class="alert alert-'+type+' alert-dismissible fade show" role="alert">'+html+'<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>';}
 function clearAlert(){document.getElementById('alertBox').innerHTML='';}
 function esc(s){return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+// ── 이전 선발자 제외 관리 (localStorage 영속화) ──
+const _EK='hanyang_excluded';
+function loadExcluded(){try{return new Set(JSON.parse(localStorage.getItem(_EK)||'[]'));}catch{return new Set();}}
+function saveExcluded(s){localStorage.setItem(_EK,JSON.stringify([...s]));}
+function addToExcluded(names){const s=loadExcluded();names.forEach(n=>s.add(n));saveExcluded(s);updateExcludeUI();}
+function clearExcluded(){if(!confirm('이전 선발 명단을 초기화하시겠습니까?\n초기화 시 중복 선발 방지가 리셋됩니다.'))return;localStorage.removeItem(_EK);updateExcludeUI();}
+function updateExcludeUI(){
+  const s=loadExcluded(),el=document.getElementById('excludeStatus'),btn=document.getElementById('excludeClearBtn');
+  if(!el)return;
+  if(s.size===0){
+    el.innerHTML='<i class="bi bi-people"></i> 이전 선발자: <strong>없음</strong> &nbsp;<span class="text-muted">(중복 선발 방지 비활성)</span>';
+    el.className='text-secondary small py-1';
+  } else {
+    el.innerHTML='<i class="bi bi-person-x-fill text-danger"></i> 이전 선발자 <strong>'+s.size+'명</strong>이 이번 선발에서 자동 제외됩니다.';
+    el.className='text-warning-emphasis small py-1 fw-semibold';
+  }
+  if(btn)btn.classList.toggle('d-none',s.size===0);
+}
+updateExcludeUI();
 </script>
 </body>
 </html>"""
@@ -648,8 +677,12 @@ class DocumentProcessor:
 # ──────────────────────────────────────────────────────────────────────
 # 선발 함수
 # ──────────────────────────────────────────────────────────────────────
-def select_scholars(applicants: List[ApplicantData], n: int=MAX_SCHOLARS) -> Tuple[List[Dict],List[Dict]]:
-    eligible=[a for a in applicants if a.is_eligible]
+def select_scholars(applicants: List[ApplicantData], n: int=MAX_SCHOLARS, excluded: set=None) -> Tuple[List[Dict],List[Dict]]:
+    excluded = excluded or set()
+    for a in applicants:
+        if a.name in excluded:
+            a.parse_notes.insert(0, "⛔ 이전 선발자 — 중복 선발 제외")
+    eligible=[a for a in applicants if a.is_eligible and a.name not in excluded]
     if not eligible: return [],[]
     records=[]
     for a in eligible:
@@ -713,7 +746,9 @@ def upload_zip():
         if not zipfile.is_zipfile(io.BytesIO(zb)): return jsonify({"success":False,"error":"손상된 ZIP 파일입니다."}),400
         applics=DocumentProcessor().process(zb)
         if not applics: return jsonify({"success":False,"error":"처리 가능한 신청자가 없습니다."}),400
-        sel,all_el=select_scholars(applics,MAX_SCHOLARS)
+        try: excl=set(json.loads(request.form.get("excluded_names","[]")))
+        except Exception: excl=set()
+        sel,all_el=select_scholars(applics,MAX_SCHOLARS,excl)
         return jsonify(_clean({"success":True,"is_demo":False,"total_applicants":len(applics),"eligible_count":len(all_el),
             "selected_count":len(sel),"results":sel,"all_results":all_el,"stats":build_report(sel,len(applics)),
             "warnings":[{"name":a.name,"note":" | ".join(a.parse_notes)} for a in applics if a.parse_notes],

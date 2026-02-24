@@ -179,6 +179,14 @@
           </div>
         </div>
 
+        <!-- 이전 선발자 제외 현황 -->
+        <div class="col-12">
+          <div class="d-flex align-items-center gap-2 p-2 border rounded bg-white">
+            <div class="flex-grow-1" id="excludeStatus"></div>
+            <button class="btn btn-outline-danger btn-sm d-none" id="excludeClearBtn" onclick="clearExcluded()"><i class="bi bi-x-circle"></i> 초기화</button>
+          </div>
+        </div>
+
         <!-- ZIP 구조 안내 -->
         <div class="col-12">
           <div class="card">
@@ -403,6 +411,7 @@ async function runDemo() {
 }
 
 async function callAPI(url, body, loadingMsg = '서류를 분석하고 있습니다...') {
+  if(url==='/api/upload') { body.append('excluded_names', JSON.stringify([...loadExcluded()])); }
   setLoading(true, loadingMsg);
   clearAlert();
   try {
@@ -434,6 +443,8 @@ function processData(data) {
   G.log      = data.log          || '';
   G.total    = data.total_applicants;
   G.eligible = data.eligible_count;
+
+  if(!data.is_demo && G.selected.length>0) addToExcluded(G.selected.map(r=>r['성명']));
 
   renderResultTab(data);
   renderStatsTab(data.stats);
@@ -645,6 +656,29 @@ function clearAlert() {
 function esc(str) {
   return String(str ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
+
+// ── 이전 선발자 제외 관리 (localStorage 영속화) ──
+const _EK = 'hanyang_excluded';
+function loadExcluded() { try { return new Set(JSON.parse(localStorage.getItem(_EK)||'[]')); } catch { return new Set(); } }
+function saveExcluded(s) { localStorage.setItem(_EK, JSON.stringify([...s])); }
+function addToExcluded(names) { const s=loadExcluded(); names.forEach(n=>s.add(n)); saveExcluded(s); updateExcludeUI(); }
+function clearExcluded() {
+  if(!confirm('이전 선발 명단을 초기화하시겠습니까?\n초기화 시 중복 선발 방지가 리셋됩니다.')) return;
+  localStorage.removeItem(_EK); updateExcludeUI();
+}
+function updateExcludeUI() {
+  const s=loadExcluded(), el=document.getElementById('excludeStatus'), btn=document.getElementById('excludeClearBtn');
+  if(!el) return;
+  if(s.size===0) {
+    el.innerHTML='<i class="bi bi-people"></i> 이전 선발자: <strong>없음</strong> &nbsp;<span class="text-muted">(중복 선발 방지 비활성)</span>';
+    el.className='text-secondary small py-1';
+  } else {
+    el.innerHTML='<i class="bi bi-person-x-fill text-danger"></i> 이전 선발자 <strong>'+s.size+'명</strong>이 이번 선발에서 자동 제외됩니다.';
+    el.className='text-warning-emphasis small py-1 fw-semibold';
+  }
+  if(btn) btn.classList.toggle('d-none', s.size===0);
+}
+updateExcludeUI();
 </script>
 </body>
 </html>
