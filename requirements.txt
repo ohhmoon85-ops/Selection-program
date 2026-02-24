@@ -1,12 +1,12 @@
-# 한영자장학재단 장학생 선발 시스템 — Vercel 배포용 의존 패키지
-# Python 3.9+
-# 설치: pip install -r requirements.txt
+# 한영자장학재단 장학생 선발 시스템 — Vercel 배포용
+# Python 3.9+  |  pip install -r requirements.txt
 
 # ── Vercel Flask 백엔드 (api/index.py)
 flask>=3.0.0
-pandas>=2.0.0
-PyMuPDF>=1.23.0
-numpy>=1.24.0
+pypdf>=4.0.0        # 순수 Python PDF 파서 (PyMuPDF 대체, 서버리스 호환)
 
-# ── 로컬 Streamlit 실행용 (app.py, 선택)
+# ── 로컬 Streamlit 실행 (app.py) — 로컬에서만 사용
 # streamlit>=1.35.0
+# PyMuPDF>=1.23.0
+# pandas>=2.0.0
+# numpy>=1.24.0

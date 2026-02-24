@@ -18,8 +18,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 
-import fitz          # PyMuPDF
-import pandas as pd
+from pypdf import PdfReader   # 순수 Python PDF 파서 (Vercel 서버리스 호환)
 from flask import Flask, jsonify, request
 
 # ──────────────────────────────────────────────────────────────────────
@@ -148,10 +147,9 @@ class PDFParser:
     @staticmethod
     def extract_text(pdf_bytes: bytes) -> str:
         try:
-            doc = fitz.open(stream=pdf_bytes, filetype="pdf")
-            text = "\n".join(p.get_text() for p in doc)
-            doc.close()
-            return mask_sensitive(text)
+            reader = PdfReader(io.BytesIO(pdf_bytes))
+            pages  = [page.extract_text() or "" for page in reader.pages]
+            return mask_sensitive("\n".join(pages))
         except Exception as e:
             logger.warning(f"PDF 추출 실패: {e}")
             return ""
