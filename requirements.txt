@@ -1,0 +1,20 @@
+# 한영자장학재단 장학생 선발 시스템 — 의존 패키지
+# Python 3.9 이상 필요
+# 설치 명령: pip install -r requirements.txt
+
+# ── UI 프레임워크
+streamlit>=1.35.0
+
+# ── 데이터 처리
+pandas>=2.0.0
+
+# ── PDF 파싱 (PyMuPDF)
+# Windows: pip install pymupdf
+# Linux/macOS: pip install pymupdf
+PyMuPDF>=1.23.0
+
+# ── 수치 연산 (pandas 의존성)
+numpy>=1.24.0
+
+# ── 선택적: 대체 PDF 파서 (PyMuPDF 설치 불가 시 pdfplumber 사용 가능)
+# pdfplumber>=0.10.0
