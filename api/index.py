@@ -1,5 +1,5 @@
 """
-한영자장학재단 장학생 선발 시스템 — Vercel Flask REST API
+한영자 희망 장학재단 장학생 선발 시스템 — Vercel Flask REST API
 후원사: 삼양 | 수여식: 2026년 4월 30일
 이사장: 전동진 | 사무국장: 임재영
 """
@@ -27,7 +27,7 @@ _INDEX_HTML = r"""<!DOCTYPE html>
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>한영자장학재단 | 장학생 선발 시스템</title>
+  <title>한영자 희망 장학재단 | 장학생 선발 시스템</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
@@ -68,7 +68,7 @@ _INDEX_HTML = r"""<!DOCTYPE html>
 </head>
 <body>
 <div class="site-header">
-  <h1>🎓 한영자장학재단</h1>
+  <h1>🎓 한영자 희망 장학재단</h1>
   <p>장학생 자동 선발 시스템 &nbsp;|&nbsp; 후원사: 삼양</p>
   <p style="font-size:.8rem;opacity:.65;">수여식: 2026년 4월 30일 &nbsp;·&nbsp; 이사장: 전동진 &nbsp;·&nbsp; 사무국장: 임재영</p>
 </div>
@@ -181,7 +181,7 @@ _INDEX_HTML = r"""<!DOCTYPE html>
         <div class="alert alert-success d-flex align-items-start mb-3">
           <i class="bi bi-trophy-fill me-2 mt-1" style="font-size:1.3rem;"></i>
           <div>
-            <strong>2026년도 한영자장학재단 장학생 최종 선발 명단</strong>
+            <strong>2026년도 한영자 희망 장학재단 장학생 최종 선발 명단</strong>
             <div class="small text-muted mt-1" id="resultMeta"></div>
           </div>
         </div>
@@ -244,7 +244,7 @@ _INDEX_HTML = r"""<!DOCTYPE html>
 </div>
 
 <footer>
-  한영자장학재단 장학생 선발 시스템 &nbsp;|&nbsp; 이사장 전동진 印 &nbsp;·&nbsp; 사무국장 임재영 印<br>
+  한영자 희망 장학재단 장학생 선발 시스템 &nbsp;|&nbsp; 이사장 전동진 印 &nbsp;·&nbsp; 사무국장 임재영 印<br>
   본 시스템은 「개인정보보호법」에 따라 주민등록번호 등 민감 정보를 마스킹 처리합니다.
 </footer>
 
@@ -341,7 +341,7 @@ function renderStats(stats) {
   const sl=G.selected.map((_,i)=>(i+1)+'위'), sd=G.selected.map(r=>r['총점']);
   mkChart('scoreChart', sl, sd, '총점','#2e7d32', c=>scoreChart=c, scoreChart);
   document.getElementById('reportBox').innerHTML =
-    '<strong>한영자장학재단 2026년도 장학생 선발 결과 보고</strong><br><br>' +
+    '<strong>한영자 희망 장학재단 2026년도 장학생 선발 결과 보고</strong><br><br>' +
     '본 재단은 <strong>자립준비청년의 실질적 자립 지원</strong>을 목적으로, 자립지원 대상자 <strong>'+stats.total_applicants+'명</strong>의 지원서를 심사하였습니다.<br><br>' +
     '학년 점수, 학업 이수율, 사회적 역량을 종합하여 <strong>'+stats.selected_count+'명</strong>을 최종 선발하였으며, 평균 점수는 <strong>'+stats.avg_score+'점</strong> (최고 '+stats.max_score+'점 / 최저 '+stats.min_score+'점), 평균 이수율은 <strong>'+stats.avg_completion+'%</strong>입니다.<br><br>' +
     '후원사 <strong>삼양</strong>의 방산기업 특성을 반영하여 이공계·방산 전공자 <strong>'+stats.stem_count+'명('+stats.stem_rate+'%)</strong>에게 가산점이 부여되었습니다. 수여식은 <strong>2026년 4월 30일</strong>입니다.<br><br>' +
@@ -361,7 +361,7 @@ function downloadCSV(type) {
   const lines=[hdr.join(','),...rows.map(r=>hdr.map(h=>{const v=r[h]??''; return /[,"\n]/.test(String(v))?'"'+String(v).replace(/"/g,'""')+'"':v;}).join(','))];
   const blob=new Blob(['\uFEFF'+lines.join('\n')],{type:'text/csv;charset=utf-8'});
   const url=URL.createObjectURL(blob), a=document.createElement('a');
-  a.href=url; a.download=(type==='selected'?'한영자장학재단_선발명단_':'한영자장학재단_전체명단_')+new Date().toISOString().slice(0,10).replace(/-/g,'')+'.csv';
+  a.href=url; a.download=(type==='selected'?'한영자 희망 장학재단_선발명단_':'한영자 희망 장학재단_전체명단_')+new Date().toISOString().slice(0,10).replace(/-/g,'')+'.csv';
   a.click(); URL.revokeObjectURL(url);
 }
 

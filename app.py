@@ -1,6 +1,6 @@
 """
 ╔══════════════════════════════════════════════════════════════════╗
-║         한영자장학재단 장학생 선발 자동화 시스템 v1.0              ║
+║         한영자 희망 장학재단 장학생 선발 자동화 시스템 v1.0              ║
 ║         후원사: 삼양 (방산기업) | 수여식: 2026년 4월 30일         ║
 ║         이사장: 전동진  |  사무국장: 임재영                        ║
 ╚══════════════════════════════════════════════════════════════════╝
@@ -785,7 +785,7 @@ def make_demo_applicants(n: int = 20) -> List[ApplicantData]:
 def main() -> None:
     # ── 페이지 기본 설정 ──────────────────────────────────────
     st.set_page_config(
-        page_title="한영자장학재단 | 장학생 선발 시스템",
+        page_title="한영자 희망 장학재단 | 장학생 선발 시스템",
         page_icon="🎓",
         layout="wide",
         initial_sidebar_state="expanded",
@@ -821,7 +821,7 @@ def main() -> None:
             padding: 1.8rem 2rem; border-radius: 12px;
             margin-bottom: 1.5rem; color: white; text-align: center;
         ">
-            <div style="font-size:2.2rem; font-weight:900; letter-spacing:2px;">🎓 한영자장학재단</div>
+            <div style="font-size:2.2rem; font-weight:900; letter-spacing:2px;">🎓 한영자 희망 장학재단</div>
             <div style="font-size:1.1rem; font-weight:300; margin-top:.4rem; opacity:.9;">
                 장학생 자동 선발 시스템 &nbsp;|&nbsp; 후원사: 삼양
             </div>
@@ -1029,7 +1029,7 @@ def main() -> None:
                 background:#e8f5e9; border-left:5px solid #2e7d32;
                 padding:1rem 1.5rem; border-radius:6px; margin-bottom:1rem;
             ">
-                <strong>🏆 2026년도 한영자장학재단 장학생 최종 선발 명단</strong>
+                <strong>🏆 2026년도 한영자 희망 장학재단 장학생 최종 선발 명단</strong>
                 {'&nbsp;<span class="badge-selected">데모</span>' if is_demo else ""}<br>
                 <span style="color:#555; font-size:.88rem;">
                     선발 기준일: {datetime.now().strftime("%Y년 %m월 %d일")} &nbsp;|&nbsp;
@@ -1082,7 +1082,7 @@ def main() -> None:
             st.download_button(
                 label="📥 선발 명단 CSV 다운로드",
                 data=csv_sel,
-                file_name=f"한영자장학재단_선발명단_{datetime.now():%Y%m%d}.csv",
+                file_name=f"한영자 희망 장학재단_선발명단_{datetime.now():%Y%m%d}.csv",
                 mime="text/csv",
                 use_container_width=True,
             )
@@ -1094,7 +1094,7 @@ def main() -> None:
                 st.download_button(
                     label="📥 전체 자격자 명단 CSV 다운로드",
                     data=csv_all,
-                    file_name=f"한영자장학재단_전체명단_{datetime.now():%Y%m%d}.csv",
+                    file_name=f"한영자 희망 장학재단_전체명단_{datetime.now():%Y%m%d}.csv",
                     mime="text/csv",
                     use_container_width=True,
                 )
@@ -1167,7 +1167,7 @@ def main() -> None:
         st.markdown(
             f"""
             <div class="report-box">
-            <strong>한영자장학재단 2026년도 장학생 선발 결과 보고</strong><br><br>
+            <strong>한영자 희망 장학재단 2026년도 장학생 선발 결과 보고</strong><br><br>
 
             본 재단은 <strong>자립준비청년의 실질적 자립 지원</strong>을 목적으로,
             대학 졸업을 앞둔 자립지원 대상자 <strong>{rpt['total_applicants']}명</strong>의
@@ -1198,7 +1198,7 @@ def main() -> None:
     st.markdown(
         """
         <div class="footer-seal">
-            한영자장학재단 장학생 선발 시스템 &nbsp;|&nbsp;
+            한영자 희망 장학재단 장학생 선발 시스템 &nbsp;|&nbsp;
             이사장 전동진 印 &nbsp;·&nbsp; 사무국장 임재영 印<br>
             본 시스템은 「개인정보보호법」에 따라 주민등록번호 등 민감 정보를 마스킹 처리합니다.
         </div>
