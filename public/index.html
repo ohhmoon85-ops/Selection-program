@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>한영자장학재단 | 장학생 선발 시스템</title>
+  <!-- Bootstrap 5 -->
+  <link rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" />
+  <!-- Bootstrap Icons -->
+  <link rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+
+  <style>
+    :root {
+      --navy: #0d1b5e;
+      --navy2: #1a3a8f;
+      --gold:  #c9a227;
+    }
+    body { background: #f5f7fb; font-family: 'Segoe UI', sans-serif; }
+
+    /* ── 헤더 ── */
+    .site-header {
+      background: linear-gradient(135deg, var(--navy), var(--navy2));
+      color: #fff; padding: 2rem 1.5rem; text-align: center;
+      border-radius: 0 0 16px 16px; margin-bottom: 1.5rem;
+      box-shadow: 0 4px 20px rgba(13,27,94,.3);
+    }
+    .site-header h1 { font-size: 2rem; font-weight: 900; letter-spacing: 2px; margin: 0; }
+    .site-header p  { margin: .3rem 0 0; opacity: .8; font-size: .9rem; }
+
+    /* ── 탭 ── */
+    .nav-tabs .nav-link          { color: #555; font-weight: 600; }
+    .nav-tabs .nav-link.active   { color: var(--navy); border-bottom: 3px solid var(--navy); }
+
+    /* ── 카드 ── */
+    .card { border: none; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,.08); }
+    .card-header { background: var(--navy); color: #fff; border-radius: 12px 12px 0 0 !important; font-weight: 700; }
+    .metric-card { border-left: 5px solid var(--navy); }
+    .metric-card .display-6 { color: var(--navy); }
+
+    /* ── 업로드 존 ── */
+    .upload-zone {
+      border: 2px dashed #aab4cc; border-radius: 12px;
+      padding: 2.5rem; text-align: center; cursor: pointer;
+      transition: background .2s;
+    }
+    .upload-zone:hover, .upload-zone.dragover { background: #e8ecf8; border-color: var(--navy2); }
+    .upload-zone i { font-size: 3rem; color: #aab4cc; }
+
+    /* ── 테이블 ── */
+    .table-scroll { overflow-x: auto; max-height: 540px; overflow-y: auto; }
+    .table thead { position: sticky; top: 0; z-index: 10; }
+    .table thead th { background: var(--navy); color: #fff; white-space: nowrap; }
+    .rank-1 { background: rgba(255,215,0,.25) !important; font-weight: 700; }
+    .rank-2 { background: rgba(192,192,192,.25) !important; font-weight: 700; }
+    .rank-3 { background: rgba(205,127,50,.25) !important; font-weight: 700; }
+    .check-mark { color: #198754; font-weight: 700; }
+
+    /* ── 보고서 박스 ── */
+    .report-box {
+      background: #eef2ff; border-left: 5px solid var(--navy);
+      padding: 1.4rem 1.8rem; border-radius: 8px; line-height: 1.9;
+    }
+
+    /* ── 로딩 ── */
+    #loadingSection { display: none; }
+
+    /* ── 푸터 ── */
+    footer { text-align: center; color: #888; font-size: .82rem; padding: 1.5rem 0 2rem; }
+
+    /* ── 로그 ── */
+    .log-box {
+      background: #1e1e2e; color: #a9b1d6; font-family: monospace;
+      font-size: .78rem; padding: 1rem; border-radius: 8px;
+      max-height: 240px; overflow-y: auto; white-space: pre;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════ 헤더 ══════════════ -->
+<div class="site-header">
+  <h1>🎓 한영자장학재단</h1>
+  <p>장학생 자동 선발 시스템 &nbsp;|&nbsp; 후원사: 삼양</p>
+  <p style="font-size:.8rem;opacity:.65;">수여식: 2026년 4월 30일 &nbsp;·&nbsp; 이사장: 전동진 &nbsp;·&nbsp; 사무국장: 임재영</p>
+</div>
+
+<div class="container-fluid px-4" style="max-width:1280px;">
+
+  <!-- 알림 영역 -->
+  <div id="alertBox"></div>
+
+  <!-- ══════════════ 탭 네비게이션 ══════════════ -->
+  <ul class="nav nav-tabs mb-3" id="mainTab">
+    <li class="nav-item">
+      <a class="nav-link active" data-bs-toggle="tab" href="#tabUpload">
+        <i class="bi bi-upload"></i> 서류 업로드
+      </a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" data-bs-toggle="tab" href="#tabResult">
+        <i class="bi bi-trophy"></i> 선발 결과
+      </a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" data-bs-toggle="tab" href="#tabStats">
+        <i class="bi bi-bar-chart-line"></i> 통계 리포트
+      </a>
+    </li>
+  </ul>
+
+  <div class="tab-content">
+
+    <!-- ══════════════ 탭 1: 업로드 ══════════════ -->
+    <div class="tab-pane fade show active" id="tabUpload">
+      <div class="row g-3">
+
+        <!-- 업로드 카드 -->
+        <div class="col-lg-7">
+          <div class="card">
+            <div class="card-header"><i class="bi bi-folder-plus"></i> 서류 ZIP 업로드</div>
+            <div class="card-body">
+              <p class="text-muted small mb-3">
+                신청자별 폴더에 <strong>4종 서류</strong>(자립지원 대상자 확인서, 재학증명서,
+                성적증명서, 가산점 서류)가 담긴 ZIP 파일을 업로드하세요.
+              </p>
+              <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+                <i class="bi bi-file-earmark-zip"></i>
+                <p class="mt-2 mb-0 fw-semibold">여기를 클릭하거나 ZIP 파일을 드래그 앤 드롭</p>
+                <p class="text-muted small">최대 50MB</p>
+              </div>
+              <input type="file" id="fileInput" accept=".zip" class="d-none" onchange="onFileSelect(this)" />
+              <div id="fileInfo" class="mt-2 small text-success d-none"></div>
+
+              <div class="d-flex gap-2 mt-3">
+                <button class="btn btn-primary flex-grow-1" id="uploadBtn" onclick="uploadFile()" disabled>
+                  <i class="bi bi-search"></i> 분석 시작
+                </button>
+                <button class="btn btn-outline-secondary flex-grow-1" onclick="runDemo()">
+                  <i class="bi bi-flask"></i> 데모 테스트
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 안내 카드 -->
+        <div class="col-lg-5">
+          <div class="card h-100">
+            <div class="card-header"><i class="bi bi-info-circle"></i> 선발 기준 안내</div>
+            <div class="card-body small">
+              <table class="table table-sm table-bordered mb-2">
+                <thead class="table-light"><tr><th>항목</th><th>배점</th></tr></thead>
+                <tbody>
+                  <tr><td>학년 점수</td><td>최대 50점</td></tr>
+                  <tr><td>학업 이수율</td><td>최대 50점</td></tr>
+                  <tr><td>가산점</td><td>최대 10점</td></tr>
+                </tbody>
+              </table>
+              <p class="fw-semibold mb-1">학년별 점수</p>
+              <ul class="mb-2">
+                <li>4학년 → 50점 &nbsp;|&nbsp; 3학년 → 35점</li>
+                <li>2학년 → 20점 &nbsp;|&nbsp; 1학년 → 5점</li>
+              </ul>
+              <p class="fw-semibold mb-1">가산점 세부</p>
+              <ul class="mb-2">
+                <li>이공계/방산 전공 → <span class="text-success fw-bold">+5</span></li>
+                <li>국가자격증/어학 → <span class="text-success fw-bold">+3</span></li>
+                <li>봉사 50h 이상 → <span class="text-success fw-bold">+2</span></li>
+              </ul>
+              <div class="alert alert-warning py-2 mb-0 small">
+                <i class="bi bi-shield-lock"></i>
+                주민번호 등 민감 정보는 추출 즉시 마스킹됩니다.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ZIP 구조 안내 -->
+        <div class="col-12">
+          <div class="card">
+            <div class="card-header"><i class="bi bi-folder-symlink"></i> ZIP 파일 구조 예시</div>
+            <div class="card-body">
+              <pre class="mb-0 small bg-light p-3 rounded">📦 신청서류.zip
+├── 홍길동/
+│   ├── 자립지원대상자확인서.pdf
+│   ├── 재학증명서.pdf
+│   ├── 성적증명서.pdf
+│   └── 가산점서류.pdf
+└── 김철수/
+    └── ...</pre>
+              <p class="mt-2 mb-0 text-muted small">
+                ※ <strong>자립지원 대상자 확인서</strong>가 없는 신청자는 자동으로 선발 대상에서 제외됩니다.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 로딩 -->
+      <div id="loadingSection" class="text-center py-5">
+        <div class="spinner-border text-primary" style="width:3rem;height:3rem;"></div>
+        <p class="mt-3 fw-semibold text-secondary" id="loadingText">서류를 분석하고 있습니다...</p>
+      </div>
+
+      <!-- 처리 로그 -->
+      <div class="mt-3 d-none" id="logSection">
+        <div class="accordion">
+          <div class="accordion-item">
+            <h2 class="accordion-header">
+              <button class="accordion-button collapsed" type="button"
+                data-bs-toggle="collapse" data-bs-target="#logCollapse">
+                <i class="bi bi-journal-text me-2"></i> 처리 로그 (투명성 원칙에 따른 처리 이력)
+              </button>
+            </h2>
+            <div id="logCollapse" class="accordion-collapse collapse">
+              <div class="accordion-body p-0">
+                <div class="log-box" id="logContent"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div><!-- /tabUpload -->
+
+    <!-- ══════════════ 탭 2: 선발 결과 ══════════════ -->
+    <div class="tab-pane fade" id="tabResult">
+      <div id="resultEmpty" class="text-center text-muted py-5">
+        <i class="bi bi-arrow-left-circle" style="font-size:2rem;"></i>
+        <p class="mt-2">'서류 업로드' 탭에서 분석을 먼저 실행하세요.</p>
+      </div>
+
+      <div id="resultContent" class="d-none">
+        <!-- 선발 공고 헤더 -->
+        <div class="alert alert-success d-flex align-items-start mb-3" id="resultBanner">
+          <i class="bi bi-trophy-fill me-2 mt-1" style="font-size:1.3rem;"></i>
+          <div>
+            <strong>2026년도 한영자장학재단 장학생 최종 선발 명단</strong>
+            <div class="small text-muted mt-1" id="resultMeta"></div>
+          </div>
+        </div>
+
+        <!-- 요약 메트릭 -->
+        <div class="row g-2 mb-3" id="resultMetrics"></div>
+
+        <!-- 다운로드 버튼 -->
+        <div class="d-flex gap-2 mb-3 flex-wrap">
+          <button class="btn btn-success btn-sm" onclick="downloadCSV('selected')">
+            <i class="bi bi-download"></i> 선발 명단 CSV
+          </button>
+          <button class="btn btn-outline-secondary btn-sm" onclick="downloadCSV('all')">
+            <i class="bi bi-download"></i> 전체 자격자 CSV
+          </button>
+        </div>
+
+        <!-- 선발 결과 테이블 -->
+        <div class="card mb-3">
+          <div class="card-header">
+            <i class="bi bi-table"></i> 최종 선발 명단
+          </div>
+          <div class="card-body p-0">
+            <div class="table-scroll">
+              <table class="table table-hover table-sm mb-0" id="resultTable">
+                <thead>
+                  <tr>
+                    <th>순위</th><th>성명</th><th>학년</th><th>전공</th>
+                    <th>이수학점</th><th>졸업기준</th><th>이수율(%)</th><th>GPA</th>
+                    <th>학년점수</th><th>이수율점수</th><th>가산점</th><th>총점</th>
+                    <th>이공계</th><th>자격증</th><th>봉사</th>
+                  </tr>
+                </thead>
+                <tbody id="resultTbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- 파싱 경고 -->
+        <div id="warningSection" class="d-none">
+          <div class="accordion">
+            <div class="accordion-item border-warning">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed bg-warning bg-opacity-10"
+                  type="button" data-bs-toggle="collapse" data-bs-target="#warnCollapse">
+                  <i class="bi bi-exclamation-triangle me-2 text-warning"></i>
+                  <span id="warnCount"></span>
+                </button>
+              </h2>
+              <div id="warnCollapse" class="accordion-collapse collapse">
+                <div class="accordion-body p-0">
+                  <table class="table table-sm mb-0" id="warnTable">
+                    <thead><tr><th>성명</th><th>주의사항</th></tr></thead>
+                    <tbody id="warnTbody"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div><!-- /tabResult -->
+
+    <!-- ══════════════ 탭 3: 통계 ══════════════ -->
+    <div class="tab-pane fade" id="tabStats">
+      <div id="statsEmpty" class="text-center text-muted py-5">
+        <i class="bi bi-arrow-left-circle" style="font-size:2rem;"></i>
+        <p class="mt-2">'서류 업로드' 탭에서 분석을 먼저 실행하세요.</p>
+      </div>
+
+      <div id="statsContent" class="d-none">
+        <!-- 핵심 지표 -->
+        <div class="row g-2 mb-3" id="statsMetrics"></div>
+
+        <!-- 차트 행 -->
+        <div class="row g-3 mb-3">
+          <div class="col-md-6">
+            <div class="card">
+              <div class="card-header"><i class="bi bi-bar-chart"></i> 학년별 선발 인원</div>
+              <div class="card-body"><canvas id="gradeChart" height="220"></canvas></div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="card">
+              <div class="card-header"><i class="bi bi-graph-up"></i> 선발자 점수 분포</div>
+              <div class="card-body"><canvas id="scoreChart" height="220"></canvas></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 가산점 현황 -->
+        <div class="row g-2 mb-3" id="bonusMetrics"></div>
+
+        <!-- 공식 보고서 -->
+        <div class="card">
+          <div class="card-header"><i class="bi bi-file-earmark-text"></i> 선발 취지 보고서</div>
+          <div class="card-body">
+            <div class="report-box" id="reportBox"></div>
+          </div>
+        </div>
+      </div>
+    </div><!-- /tabStats -->
+
+  </div><!-- /tab-content -->
+</div><!-- /container -->
+
+<!-- ══════════════ 푸터 ══════════════ -->
+<footer>
+  한영자장학재단 장학생 선발 시스템 &nbsp;|&nbsp;
+  이사장 전동진 印 &nbsp;·&nbsp; 사무국장 임재영 印<br>
+  본 시스템은 「개인정보보호법」에 따라 주민등록번호 등 민감 정보를 마스킹 처리합니다.
+</footer>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+/* ══════════════════════════════════════════════════════════════════
+   전역 상태
+══════════════════════════════════════════════════════════════════ */
+let G = { selected: [], all: [], stats: null };
+let gradeChartInst = null, scoreChartInst = null;
+
+/* ══════════════════════════════════════════════════════════════════
+   파일 선택 / 드래그앤드롭
+══════════════════════════════════════════════════════════════════ */
+function onFileSelect(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const info = document.getElementById('fileInfo');
+  info.textContent = `✅ ${file.name}  (${(file.size/1024).toFixed(1)} KB)`;
+  info.classList.remove('d-none');
+  document.getElementById('uploadBtn').disabled = false;
+}
+
+const zone = document.getElementById('uploadZone');
+zone.addEventListener('dragover',  e => { e.preventDefault(); zone.classList.add('dragover'); });
+zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+zone.addEventListener('drop', e => {
+  e.preventDefault(); zone.classList.remove('dragover');
+  const dt = new DataTransfer();
+  dt.items.add(e.dataTransfer.files[0]);
+  const fi = document.getElementById('fileInput');
+  fi.files = dt.files;
+  onFileSelect(fi);
+});
+
+/* ══════════════════════════════════════════════════════════════════
+   업로드 & API 호출
+══════════════════════════════════════════════════════════════════ */
+async function uploadFile() {
+  const file = document.getElementById('fileInput').files[0];
+  if (!file) return;
+  const form = new FormData();
+  form.append('file', file);
+  await callAPI('/api/upload', form);
+}
+
+async function runDemo() {
+  await callAPI('/api/demo', new FormData(), '데모 데이터로 분석 중...');
+}
+
+async function callAPI(url, body, loadingMsg = '서류를 분석하고 있습니다...') {
+  setLoading(true, loadingMsg);
+  clearAlert();
+  try {
+    const res  = await fetch(url, { method: 'POST', body });
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error || '알 수 없는 오류');
+    processData(data);
+    showAlert('success',
+      `🎉 분석 완료! 총 <strong>${data.total_applicants}명</strong> 신청자 중
+       <strong>${data.selected_count}명</strong> 최종 선발`
+       + (data.is_demo ? ' <span class="badge bg-warning text-dark">데모</span>' : ''));
+    // 결과 탭으로 자동 이동
+    new bootstrap.Tab(document.querySelector('[href="#tabResult"]')).show();
+  } catch(e) {
+    showAlert('danger', '❌ ' + e.message);
+  } finally {
+    setLoading(false);
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   데이터 처리 → 전체 UI 갱신
+══════════════════════════════════════════════════════════════════ */
+function processData(data) {
+  G.selected = data.results      || [];
+  G.all      = data.all_results  || [];
+  G.stats    = data.stats        || {};
+  G.warnings = data.warnings     || [];
+  G.log      = data.log          || '';
+  G.total    = data.total_applicants;
+  G.eligible = data.eligible_count;
+
+  renderResultTab(data);
+  renderStatsTab(data.stats);
+
+  // 로그
+  if (G.log) {
+    document.getElementById('logContent').textContent = G.log;
+    document.getElementById('logSection').classList.remove('d-none');
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   탭 2: 선발 결과
+══════════════════════════════════════════════════════════════════ */
+function renderResultTab(data) {
+  document.getElementById('resultEmpty').classList.add('d-none');
+  document.getElementById('resultContent').classList.remove('d-none');
+
+  // 메타 정보
+  const now = new Date();
+  document.getElementById('resultMeta').innerHTML =
+    `선발 기준일: ${now.toLocaleDateString('ko-KR')} &nbsp;|&nbsp; ` +
+    `수여식: 2026년 4월 30일 &nbsp;|&nbsp; 이사장 전동진 印 &nbsp;|&nbsp; 사무국장 임재영 印`;
+
+  // 요약 메트릭
+  document.getElementById('resultMetrics').innerHTML = makeMetrics([
+    { label: '총 신청자', value: data.total_applicants + '명', icon: 'people' },
+    { label: '자격 충족', value: data.eligible_count + '명',   icon: 'person-check' },
+    { label: '최종 선발', value: data.selected_count + '명',   icon: 'trophy',  color: 'text-success' },
+  ]);
+
+  // 결과 테이블
+  const tbody = document.getElementById('resultTbody');
+  tbody.innerHTML = '';
+  G.selected.forEach(r => {
+    const cls = r['순위'] === 1 ? 'rank-1' : r['순위'] === 2 ? 'rank-2' : r['순위'] === 3 ? 'rank-3' : '';
+    tbody.insertAdjacentHTML('beforeend', `
+      <tr class="${cls}">
+        <td><strong>${r['순위']}</strong></td>
+        <td>${esc(r['성명'])}</td>
+        <td>${esc(r['학년'])}</td>
+        <td class="text-nowrap">${esc(r['전공'])}</td>
+        <td>${r['이수학점']}</td>
+        <td>${r['졸업기준학점']}</td>
+        <td><strong>${r['이수율']}%</strong></td>
+        <td>${r['GPA']}</td>
+        <td>${r['학년점수']}</td>
+        <td>${r['이수율점수']}</td>
+        <td>${r['가산점']}</td>
+        <td><strong>${r['총점']}</strong></td>
+        <td class="check-mark text-center">${r['이공계방산']||''}</td>
+        <td class="check-mark text-center">${r['자격증어학']||''}</td>
+        <td class="check-mark text-center">${r['봉사50h']||''}</td>
+      </tr>`);
+  });
+
+  // 경고
+  if (G.warnings.length > 0) {
+    document.getElementById('warningSection').classList.remove('d-none');
+    document.getElementById('warnCount').textContent = `파싱 주의사항 (${G.warnings.length}건)`;
+    const wb = document.getElementById('warnTbody');
+    wb.innerHTML = '';
+    G.warnings.forEach(w => {
+      wb.insertAdjacentHTML('beforeend',
+        `<tr><td>${esc(w.name)}</td><td class="small">${esc(w.note)}</td></tr>`);
+    });
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   탭 3: 통계 리포트
+══════════════════════════════════════════════════════════════════ */
+function renderStatsTab(stats) {
+  if (!stats) return;
+  document.getElementById('statsEmpty').classList.add('d-none');
+  document.getElementById('statsContent').classList.remove('d-none');
+
+  // 핵심 지표
+  document.getElementById('statsMetrics').innerHTML = makeMetrics([
+    { label: '총 신청자',   value: stats.total_applicants + '명', icon: 'people' },
+    { label: '최종 선발',   value: stats.selected_count   + '명', icon: 'trophy', color: 'text-success' },
+    { label: '선발률',      value: stats.selection_rate   + '%',  icon: 'percent' },
+    { label: '평균 점수',   value: stats.avg_score        + '점', icon: 'star' },
+    { label: '평균 이수율', value: stats.avg_completion   + '%',  icon: 'journal-check' },
+  ]);
+
+  // 가산점 현황
+  document.getElementById('bonusMetrics').innerHTML = makeMetrics([
+    { label: '이공계/방산 전공자', value: stats.stem_count + '명 (' + stats.stem_rate + '%)', icon: 'cpu' },
+    { label: '자격증/어학 성적',   value: stats.cert_count + '명', icon: 'award' },
+    { label: '봉사 50h 이상',      value: stats.vol_count  + '명', icon: 'heart' },
+  ]);
+
+  // 학년별 차트
+  const gradeLabels = Object.keys(stats.grade_dist).sort().reverse();
+  const gradeData   = gradeLabels.map(k => stats.grade_dist[k]);
+  renderBarChart('gradeChart', gradeLabels, gradeData, '선발 인원', '#1a3a8f', gradeChartInst,
+    inst => { gradeChartInst = inst; });
+
+  // 점수 분포 차트
+  const scoreLabels = G.selected.map((_, i) => (i+1) + '위');
+  const scoreData   = G.selected.map(r => r['총점']);
+  renderBarChart('scoreChart', scoreLabels, scoreData, '총점', '#2e7d32', scoreChartInst,
+    inst => { scoreChartInst = inst; });
+
+  // 공식 보고서
+  document.getElementById('reportBox').innerHTML = `
+    <strong>한영자장학재단 2026년도 장학생 선발 결과 보고</strong><br><br>
+    본 재단은 <strong>자립준비청년의 실질적 자립 지원</strong>을 목적으로,
+    대학 졸업을 앞둔 자립지원 대상자 <strong>${stats.total_applicants}명</strong>의
+    지원서를 심사하였습니다.<br><br>
+    객관적 지표(학년 점수, 학업 이수율)와 사회적 역량(이공계 전공, 자격증, 봉사)을
+    종합하여 <strong>${stats.selected_count}명</strong>을 최종 선발하였으며,
+    선발자의 평균 점수는 <strong>${stats.avg_score}점</strong>
+    (최고 ${stats.max_score}점 / 최저 ${stats.min_score}점),
+    평균 이수율은 <strong>${stats.avg_completion}%</strong>입니다.<br><br>
+    후원사 <strong>삼양</strong>의 방산기업 특성을 반영하여
+    이공계·방산 관련 전공자 <strong>${stats.stem_count}명 (${stats.stem_rate}%)</strong>에게
+    가산점이 부여되었으며, 자격증·어학 성적 보유자 ${stats.cert_count}명,
+    봉사활동 50시간 이상 이행자 ${stats.vol_count}명이 추가 가산점을 받았습니다.<br><br>
+    모든 선발 과정은 자동화 알고리즘에 의해 투명하게 처리·기록됩니다.
+    장학금 수여식은 <strong>2026년 4월 30일</strong>에 진행될 예정입니다.<br><br>
+    <em>이사장 전동진 &nbsp;印 &nbsp;&nbsp; 사무국장 임재영 &nbsp;印</em>`;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   차트 헬퍼
+══════════════════════════════════════════════════════════════════ */
+function renderBarChart(canvasId, labels, data, label, color, oldInst, setter) {
+  if (oldInst) oldInst.destroy();
+  const ctx = document.getElementById(canvasId).getContext('2d');
+  setter(new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{ label, data, backgroundColor: color + 'cc', borderColor: color, borderWidth: 1 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+    }
+  }));
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   CSV 다운로드 (클라이언트 사이드 생성)
+══════════════════════════════════════════════════════════════════ */
+function downloadCSV(type) {
+  const rows  = type === 'selected' ? G.selected : G.all;
+  if (!rows || !rows.length) return;
+
+  // 표시용 컬럼 (내부 정렬용 컬럼 제외)
+  const exclude = new Set(['_학년숫자', '_이수율정렬']);
+  const headers = Object.keys(rows[0]).filter(k => !exclude.has(k));
+
+  const lines = [
+    headers.join(','),
+    ...rows.map(r => headers.map(h => {
+      const v = r[h] ?? '';
+      return /[,"\n]/.test(String(v)) ? `"${String(v).replace(/"/g, '""')}"` : v;
+    }).join(','))
+  ];
+
+  // BOM 추가 (한글 엑셀 호환)
+  const blob = new Blob(['\uFEFF' + lines.join('\n')], { type: 'text/csv;charset=utf-8' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  const now  = new Date().toISOString().slice(0,10).replace(/-/g,'');
+  a.download = type === 'selected'
+    ? `한영자장학재단_선발명단_${now}.csv`
+    : `한영자장학재단_전체명단_${now}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   UI 헬퍼
+══════════════════════════════════════════════════════════════════ */
+function makeMetrics(items) {
+  return items.map(m => `
+    <div class="col-sm-6 col-lg-auto flex-grow-1">
+      <div class="card metric-card p-3 h-100">
+        <div class="text-muted small"><i class="bi bi-${m.icon} me-1"></i>${m.label}</div>
+        <div class="display-6 fw-bold mt-1 ${m.color||'text-dark'}">${m.value}</div>
+      </div>
+    </div>`).join('');
+}
+
+function setLoading(on, msg = '') {
+  document.getElementById('loadingSection').style.display = on ? 'block' : 'none';
+  document.getElementById('loadingText').textContent = msg;
+  document.getElementById('uploadBtn').disabled = on;
+}
+
+function showAlert(type, html) {
+  document.getElementById('alertBox').innerHTML =
+    `<div class="alert alert-${type} alert-dismissible fade show" role="alert">
+       ${html}
+       <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+     </div>`;
+}
+
+function clearAlert() {
+  document.getElementById('alertBox').innerHTML = '';
+}
+
+function esc(str) {
+  return String(str ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+</script>
+</body>
+</html>
