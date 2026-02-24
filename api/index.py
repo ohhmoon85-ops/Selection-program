@@ -41,6 +41,16 @@ def _cors(response):
 def _preflight():
     return "", 204
 
+# ── 루트: public/index.html 서빙 ──────────────────────────────────────
+# Vercel은 정적 파일을 별도 빌더 없이 찾지 못하므로 Flask가 직접 반환한다.
+_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # 프로젝트 루트
+
+@app.route("/")
+def serve_index():
+    html_path = os.path.join(_ROOT, "public", "index.html")
+    with open(html_path, "r", encoding="utf-8") as f:
+        return f.read(), 200, {"Content-Type": "text/html; charset=utf-8"}
+
 # ──────────────────────────────────────────────────────────────────────
 # 로깅 (처리 이력 — 투명성 원칙)
 # ──────────────────────────────────────────────────────────────────────
