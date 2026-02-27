@@ -208,6 +208,7 @@ _INDEX_HTML = r"""<!DOCTYPE html>
         <div class="d-flex gap-2 mb-3 flex-wrap">
           <button class="btn btn-success btn-sm" onclick="downloadCSV('selected')"><i class="bi bi-download"></i> 선발 명단 CSV</button>
           <button class="btn btn-outline-secondary btn-sm" onclick="downloadCSV('all')"><i class="bi bi-download"></i> 전체 자격자 CSV</button>
+          <button class="btn btn-dark btn-sm ms-auto" onclick="generateReport()" style="background:linear-gradient(135deg,#0d1b5e,#1a3a8f);border:none;letter-spacing:.5px;"><i class="bi bi-file-earmark-richtext"></i>&nbsp; 이사회 보고서 생성</button>
         </div>
         <div class="card mb-3">
           <div class="card-header"><i class="bi bi-table"></i> 최종 선발 명단</div>
@@ -436,6 +437,202 @@ function setLoading(on,msg=''){document.getElementById('loadingSection').style.d
 function showAlert(type,html){document.getElementById('alertBox').innerHTML='<div class="alert alert-'+type+' alert-dismissible fade show" role="alert">'+html+'<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>';}
 function clearAlert(){document.getElementById('alertBox').innerHTML='';}
 function esc(s){return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+// ── 이사회 보고서 생성 ──
+function generateReport() {
+  if (!G.selected || !G.selected.length) { showAlert('warning','선발 결과가 없습니다. 먼저 분석을 실행하세요.'); return; }
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric'});
+  const st = G.stats||{};
+  const gdRows = Object.entries(st.grade_dist||{}).sort((a,b)=>b[0].localeCompare(a[0]))
+    .map(([g,c])=>`<tr><td>${g}</td><td style="text-align:center">${c}명</td><td style="text-align:center">${(st.selected_count?Math.round(c/st.selected_count*100):0)}%</td></tr>`).join('');
+  const rdRows = Object.entries(st.region_dist||{}).filter(([k])=>k!=='미확인').sort((a,b)=>b[1]-a[1]).slice(0,8)
+    .map(([r,c])=>`<tr><td>${r}</td><td style="text-align:center">${c}명</td><td style="text-align:center">${(st.selected_count?Math.round(c/st.selected_count*100):0)}%</td></tr>`).join('');
+  const schRows = G.selected.map(r=>`<tr>
+    <td style="text-align:center;font-weight:700;color:#0d1b5e">${r['순위']}</td>
+    <td style="text-align:center;font-weight:700">${esc(r['성명'])}</td>
+    <td style="text-align:center">${esc(r['지역']||'미확인')}</td>
+    <td style="font-size:11px">${esc(r['전공'])}</td>
+    <td style="text-align:center">${esc(r['학년'])}</td>
+    <td style="text-align:center">${r['GPA']}</td>
+    <td style="text-align:center">${r['이수율']}%</td>
+    <td style="text-align:center;font-weight:800;color:#0d1b5e">${r['총점']}</td>
+    <td style="text-align:center;color:#1a6b3a">${r['이공계방산']?'●':''}</td>
+    <td style="text-align:center;color:#1a6b3a">${r['자격증어학']?'●':''}</td>
+    <td style="text-align:center;color:#1a6b3a">${r['봉사50h']?'●':''}</td>
+  </tr>`).join('');
+
+  const html=`<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
+<title>한영자 희망 장학재단 — 이사회 보고서 2026</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;600;700;900&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Noto Sans KR','Malgun Gothic',sans-serif;background:#e8e0d0;color:#1a1a2e;padding:28px 16px;}
+.print-bar{background:#0d1b5e;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;max-width:880px;margin:0 auto 18px;border-radius:6px;}
+.print-bar span{color:#c8b97a;font-size:13px;font-weight:600;}
+.print-bar button{background:#c8b97a;border:none;color:#0d1b5e;font-weight:800;padding:8px 24px;border-radius:4px;cursor:pointer;font-size:13px;letter-spacing:.5px;}
+.print-bar button:hover{background:#d4c88a;}
+.page{background:#fff;max-width:880px;margin:0 auto;padding:64px 72px 72px;box-shadow:0 12px 48px rgba(0,0,0,.22);position:relative;overflow:hidden;}
+.page::before{content:'한영자 희망 장학재단';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-30deg);font-size:80px;color:rgba(13,27,94,.03);font-weight:900;white-space:nowrap;pointer-events:none;z-index:0;font-family:'Noto Serif KR',serif;}
+.top-stripe{position:absolute;top:0;left:0;right:0;height:7px;background:linear-gradient(90deg,#0d1b5e 60%,#c8b97a 100%);}
+.doc-header{text-align:center;padding-bottom:28px;border-bottom:2px solid #0d1b5e;margin-bottom:28px;position:relative;}
+.emblem{width:68px;height:68px;border:3px solid #0d1b5e;border-radius:50%;margin:0 auto 10px;display:flex;align-items:center;justify-content:center;font-size:28px;background:#f5f8ff;}
+.doc-header h1{font-family:'Noto Serif KR',serif;font-size:24px;font-weight:900;color:#0d1b5e;letter-spacing:4px;margin-bottom:4px;}
+.doc-header h2{font-family:'Noto Serif KR',serif;font-size:17px;font-weight:700;color:#222;letter-spacing:2px;margin-bottom:20px;}
+.gold-line{width:80px;height:2px;background:#c8b97a;margin:10px auto;}
+.doc-meta{display:flex;justify-content:center;gap:36px;font-size:13px;color:#444;}
+.doc-meta strong{color:#0d1b5e;}
+.info-box{border:1px solid #c8b97a;border-radius:4px;background:linear-gradient(to bottom,#fdfaf0,#faf6e8);margin-bottom:30px;}
+.info-box table{width:100%;border-collapse:collapse;}
+.info-box td{padding:8px 16px;font-size:13px;border-bottom:1px solid #ede5c8;vertical-align:top;}
+.info-box td:first-child{width:110px;background:rgba(200,185,122,.18);font-weight:700;color:#5c4a1e;border-right:1px solid #ede5c8;}
+.info-box tr:last-child td{border-bottom:none;}
+.sec{display:flex;align-items:center;gap:10px;font-family:'Noto Serif KR',serif;font-size:14.5px;font-weight:900;color:#fff;background:linear-gradient(90deg,#0d1b5e,#1a3a8f 80%);padding:9px 18px;border-radius:4px;margin:28px 0 14px;letter-spacing:1px;}
+.sec-num{font-size:16px;font-weight:900;border-right:1px solid rgba(255,255,255,.35);padding-right:10px;margin-right:2px;}
+.notice{background:#f8f9ff;border:1px solid #d0d8f0;border-left:4px solid #0d1b5e;padding:13px 16px;font-size:12.5px;color:#444;border-radius:0 4px 4px 0;line-height:1.9;margin-bottom:14px;}
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px;}
+.stat-card{text-align:center;border:1px solid #d0d8f0;border-radius:6px;padding:14px 8px;background:#f8f9ff;transition:transform .15s;}
+.stat-card .val{font-size:21px;font-weight:900;color:#0d1b5e;font-family:'Noto Serif KR',serif;}
+.stat-card .lbl{font-size:11px;color:#666;margin-top:3px;}
+table.doc-table{width:100%;border-collapse:collapse;font-size:12px;}
+table.doc-table thead th{background:#0d1b5e;color:#fff;padding:8px 5px;text-align:center;font-weight:600;white-space:nowrap;}
+table.doc-table tbody td{padding:7px 5px;border-bottom:1px solid #eee;vertical-align:middle;}
+table.doc-table tbody tr:nth-child(even){background:#f9faff;}
+table.doc-table tbody tr:first-child td{background:rgba(255,215,0,.18)!important;font-weight:700;}
+table.doc-table tbody tr:nth-child(2) td{background:rgba(192,192,192,.18)!important;font-weight:700;}
+table.doc-table tbody tr:nth-child(3) td{background:rgba(205,127,50,.15)!important;font-weight:700;}
+table.sub-table{border-collapse:collapse;font-size:13px;}
+table.sub-table th{background:#1a3a8f;color:#fff;padding:7px 14px;text-align:center;}
+table.sub-table td{padding:7px 14px;border-bottom:1px solid #e8e8e8;text-align:center;}
+.sig-section{margin-top:54px;padding-top:22px;border-top:2px solid #0d1b5e;}
+.sig-intro{font-family:'Noto Serif KR',serif;font-size:13.5px;color:#333;text-align:center;margin-bottom:28px;line-height:1.8;}
+.sig-grid{display:flex;justify-content:space-around;align-items:flex-end;flex-wrap:wrap;gap:20px;}
+.sig-block{text-align:center;}
+.sig-block .role{font-size:12px;color:#666;font-weight:600;margin-bottom:4px;letter-spacing:1px;}
+.sig-block .name{font-family:'Noto Serif KR',serif;font-size:20px;font-weight:900;color:#0d1b5e;letter-spacing:4px;margin-bottom:6px;}
+.stamp{display:inline-flex;width:72px;height:72px;border:2.5px solid #b03030;border-radius:50%;color:#b03030;font-size:10.5px;font-weight:900;line-height:1.4;padding:10px 4px;text-align:center;align-items:center;justify-content:center;transform:rotate(-13deg);opacity:.82;margin-top:4px;font-family:'Noto Serif KR',serif;flex-direction:column;}
+.doc-footer{margin-top:36px;padding-top:14px;border-top:1px solid #ddd;display:flex;justify-content:space-between;font-size:11px;color:#999;}
+@media print{body{background:#fff;padding:0;}
+.page{box-shadow:none;padding:40px 50px;}
+.print-bar{display:none;}
+table.doc-table{font-size:10.5px;}
+.stats-grid{grid-template-columns:repeat(4,1fr);}}
+</style></head><body>
+<div class="print-bar">
+  <span>📋 한영자 희망 장학재단 &nbsp;|&nbsp; 2026년도 장학생 최종 선발 결과 보고서</span>
+  <button onclick="window.print()">🖨&nbsp; 인쇄 · PDF 저장</button>
+</div>
+<div class="page">
+  <div class="top-stripe"></div>
+  <div class="doc-header">
+    <div class="emblem">🎓</div>
+    <h1>한영자 희망 장학재단</h1>
+    <div class="gold-line"></div>
+    <h2>2026년도 장학생 최종 선발 결과 보고</h2>
+    <div class="doc-meta">
+      <span>보고 일자: <strong>${dateStr}</strong></span>
+      <span>보고 대상: <strong>이 사 회</strong></span>
+      <span>기 안: <strong>사무국장 임재영</strong></span>
+    </div>
+  </div>
+  <div class="info-box"><table>
+    <tr><td>문서 구분</td><td>이사회 보고용 내부 문서 &nbsp;<span style="background:#0d1b5e;color:#fff;font-size:10px;padding:1px 7px;border-radius:3px;font-weight:700">대내용</span></td></tr>
+    <tr><td>후 원 사</td><td><strong>삼양</strong></td></tr>
+    <tr><td>수여식 일자</td><td>2026년 4월 30일</td></tr>
+    <tr><td>보고 내용</td><td>2026년도 한영자 희망 장학재단 장학생 선발 심사 결과 및 최종 명단</td></tr>
+  </table></div>
+
+  <div class="sec"><span class="sec-num">Ⅰ</span>선발 개요</div>
+  <div class="notice">
+    본 재단은 아동양육시설·공동생활가정 등 보호 종료 청년(자립준비청년)의 고등교육 기회 보장 및 실질적 자립 역량 강화를 목적으로,
+    「자립지원 대상자 확인서」 제출자를 대상으로 2026년도 장학생 선발을 실시하였습니다.<br>
+    본 선발 과정은 전산화된 자동 채점 시스템을 통해 객관적 기준에 따라 공정하게 진행되었으며,
+    주민등록번호 등 민감 정보는 「개인정보보호법」에 따라 추출 즉시 마스킹 처리하였습니다.
+  </div>
+
+  <div class="sec"><span class="sec-num">Ⅱ</span>선발 기준</div>
+  <table class="sub-table" style="width:100%;margin-bottom:8px">
+    <thead><tr><th style="width:28%;text-align:left">평가 항목</th><th style="width:18%">배점</th><th style="text-align:left">세부 기준</th></tr></thead>
+    <tbody>
+      <tr><td style="text-align:left;font-weight:600">학년 점수</td><td>최대 50점</td><td style="text-align:left">4학년 50점 · 3학년 35점 · 2학년 20점 · 1학년 5점</td></tr>
+      <tr><td style="text-align:left;font-weight:600">학업 이수율</td><td>최대 50점</td><td style="text-align:left">취득학점 ÷ 졸업기준학점 × 50점</td></tr>
+      <tr><td style="text-align:left;font-weight:600">가산점</td><td>최대 10점</td><td style="text-align:left">이공계·방산 전공 +5점 &nbsp;·&nbsp; 국가자격증·어학성적 +3점 &nbsp;·&nbsp; 봉사 50시간 이상 +2점</td></tr>
+      <tr style="background:#f0f4ff"><td style="text-align:left;font-weight:800">합 계</td><td style="font-weight:800">최대 110점</td><td style="text-align:left;font-size:12px">총점 기준 내림차순 선발 (동점 시: 이수율 → 학년 → GPA 순)</td></tr>
+    </tbody>
+  </table>
+  <p style="font-size:12px;color:#888;margin-bottom:0">※ 「자립지원 대상자 확인서」 미제출자는 자격 심사 이전에 자동 제외됩니다.</p>
+
+  <div class="sec"><span class="sec-num">Ⅲ</span>선발 결과 통계</div>
+  <div class="stats-grid">
+    <div class="stat-card"><div class="val">${st.total_applicants||0}명</div><div class="lbl">총 신청자</div></div>
+    <div class="stat-card"><div class="val">${st.selected_count||0}명</div><div class="lbl">최종 선발</div></div>
+    <div class="stat-card"><div class="val">${st.selection_rate||0}%</div><div class="lbl">선발률</div></div>
+    <div class="stat-card"><div class="val">${st.avg_score||0}점</div><div class="lbl">평균 총점</div></div>
+    <div class="stat-card"><div class="val">${st.max_score||0}점</div><div class="lbl">최고 점수</div></div>
+    <div class="stat-card"><div class="val">${st.min_score||0}점</div><div class="lbl">최저 점수</div></div>
+    <div class="stat-card"><div class="val">${st.avg_completion||0}%</div><div class="lbl">평균 이수율</div></div>
+    <div class="stat-card"><div class="val">${st.avg_gpa||0}</div><div class="lbl">평균 GPA</div></div>
+  </div>
+  <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:14px">
+    <div><p style="font-size:12.5px;font-weight:700;color:#0d1b5e;margin-bottom:6px">학년별 선발 현황</p>
+    <table class="sub-table"><thead><tr><th>학년</th><th>인원</th><th>비율</th></tr></thead><tbody>${gdRows}</tbody></table></div>
+    ${rdRows?`<div><p style="font-size:12.5px;font-weight:700;color:#0d1b5e;margin-bottom:6px">지역별 선발 현황 (상위 8개)</p>
+    <table class="sub-table"><thead><tr><th>지역</th><th>인원</th><th>비율</th></tr></thead><tbody>${rdRows}</tbody></table></div>`:''}
+  </div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap">
+    <div style="font-size:12.5px;background:#f0f4ff;padding:8px 14px;border-radius:4px;border:1px solid #d0d8f0"><strong>이공계·방산 전공</strong>: ${st.stem_count||0}명 (${st.stem_rate||0}%)</div>
+    <div style="font-size:12.5px;background:#f0f4ff;padding:8px 14px;border-radius:4px;border:1px solid #d0d8f0"><strong>자격증·어학성적 보유</strong>: ${st.cert_count||0}명</div>
+    <div style="font-size:12.5px;background:#f0f4ff;padding:8px 14px;border-radius:4px;border:1px solid #d0d8f0"><strong>봉사 50시간 이상</strong>: ${st.vol_count||0}명</div>
+  </div>
+
+  <div class="sec"><span class="sec-num">Ⅳ</span>최종 선발자 명단</div>
+  <table class="doc-table">
+    <thead><tr>
+      <th style="width:38px">순위</th><th>성명</th><th>지역</th><th>전공</th><th>학년</th>
+      <th>GPA</th><th>이수율</th><th>총점</th><th title="이공계·방산 전공">이공계</th><th title="자격증·어학성적">자격증</th><th title="봉사 50h 이상">봉사</th>
+    </tr></thead>
+    <tbody>${schRows}</tbody>
+  </table>
+  <p style="font-size:11px;color:#999;margin-top:6px">※ 이공계 = 이공계·방산 전공 가산점 &nbsp;·&nbsp; 자격증 = 국가자격증·어학성적 &nbsp;·&nbsp; 봉사 = 50시간 이상 달성 &nbsp;·&nbsp; ● 해당</p>
+
+  <div class="sig-section">
+    <p class="sig-intro">
+      위와 같이 2026년도 한영자 희망 장학재단 장학생 최종 선발 결과를 보고드립니다.<br>
+      <span style="font-size:12px;color:#888">본 선발은 공정성 원칙에 따라 전산 자동 채점 방식으로 진행되었습니다.</span>
+    </p>
+    <div class="sig-grid">
+      <div class="sig-block">
+        <div class="role">사 무 국 장</div>
+        <div class="name">임 재 영</div>
+        <div class="stamp">한영자<br>희망<br>재단</div>
+      </div>
+      <div style="text-align:center;font-size:13px;color:#aaa;align-self:center">
+        <div style="border:1px solid #ddd;padding:10px 20px;border-radius:4px;background:#fafafa">
+          <div style="font-size:11px;color:#bbb;margin-bottom:4px">결재란</div>
+          <div style="display:flex;gap:0">
+            <div style="border:1px solid #ccc;padding:8px 16px;min-width:60px;text-align:center;font-size:12px">담당<br><br></div>
+            <div style="border:1px solid #ccc;border-left:none;padding:8px 16px;min-width:60px;text-align:center;font-size:12px">검토<br><br></div>
+            <div style="border:1px solid #ccc;border-left:none;padding:8px 16px;min-width:60px;text-align:center;font-size:12px">승인<br><br></div>
+          </div>
+        </div>
+      </div>
+      <div class="sig-block">
+        <div class="role">이 사 장</div>
+        <div class="name">전 동 진</div>
+        <div class="stamp">이사장<br>직 인</div>
+      </div>
+    </div>
+  </div>
+  <div class="doc-footer">
+    <span>한영자 희망 장학재단 &nbsp;|&nbsp; 후원사: 삼양 &nbsp;|&nbsp; 수여식: 2026년 4월 30일</span>
+    <span>본 문서는 「개인정보보호법」에 따라 민감 정보를 마스킹 처리하였습니다.</span>
+  </div>
+</div></body></html>`;
+
+  const win=window.open('','_blank','width=980,height=820,scrollbars=yes,resizable=yes');
+  if(!win){showAlert('warning','팝업이 차단되었습니다. 브라우저 팝업 허용 후 다시 시도하세요.');return;}
+  win.document.open(); win.document.write(html); win.document.close();
+}
 
 // ── 지역 대시보드 ──
 const REGION_POS = {
