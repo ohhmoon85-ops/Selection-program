@@ -65,6 +65,17 @@ _INDEX_HTML = r"""<!DOCTYPE html>
     #loadingSection { display:none; }
     footer { text-align:center; color:#888; font-size:.82rem; padding:1.5rem 0 2rem; }
     .log-box { background:#1e1e2e; color:#a9b1d6; font-family:monospace; font-size:.78rem; padding:1rem; border-radius:8px; max-height:240px; overflow-y:auto; white-space:pre; }
+    .korea-map { position:relative; width:100%; max-width:340px; margin:0 auto; }
+    .korea-map svg { width:100%; height:auto; }
+    .map-bubble { fill:var(--navy2); fill-opacity:.75; stroke:#fff; stroke-width:1.5; transition:fill-opacity .2s; cursor:default; }
+    .map-bubble:hover { fill-opacity:1; }
+    .map-label { font-size:9px; fill:#fff; text-anchor:middle; dominant-baseline:middle; pointer-events:none; font-weight:700; }
+    .leaderboard-item { display:flex; align-items:center; gap:.6rem; padding:.5rem .8rem; border-bottom:1px solid #eee; }
+    .leaderboard-item:last-child { border-bottom:none; }
+    .lb-rank { min-width:28px; font-weight:800; font-size:1rem; color:var(--navy); }
+    .lb-name { flex-grow:1; font-weight:600; }
+    .lb-score { background:var(--navy); color:#fff; border-radius:20px; padding:2px 10px; font-size:.82rem; font-weight:700; }
+    .lb-region { font-size:.78rem; color:#666; }
   </style>
 </head>
 <body>
@@ -81,6 +92,7 @@ _INDEX_HTML = r"""<!DOCTYPE html>
     <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#tabUpload"><i class="bi bi-upload"></i> 서류 업로드</a></li>
     <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tabResult"><i class="bi bi-trophy"></i> 선발 결과</a></li>
     <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tabStats"><i class="bi bi-bar-chart-line"></i> 통계 리포트</a></li>
+    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tabDash"><i class="bi bi-map"></i> 지역 대시보드</a></li>
   </ul>
 
   <div class="tab-content">
@@ -247,6 +259,51 @@ _INDEX_HTML = r"""<!DOCTYPE html>
       </div>
     </div>
 
+    <!-- 탭4: 지역 대시보드 -->
+    <div class="tab-pane fade" id="tabDash">
+      <div id="dashEmpty" class="text-center text-muted py-5">
+        <i class="bi bi-arrow-left-circle" style="font-size:2rem;"></i>
+        <p class="mt-2">'서류 업로드' 탭에서 분석을 먼저 실행하세요.</p>
+      </div>
+      <div id="dashContent" class="d-none">
+        <div class="row g-2 mb-3" id="dashMetrics"></div>
+        <div class="row g-3">
+          <!-- 지도 버블 맵 -->
+          <div class="col-lg-4">
+            <div class="card h-100">
+              <div class="card-header"><i class="bi bi-geo-alt"></i> 지역별 분포 (거주지 기준)</div>
+              <div class="card-body d-flex align-items-center justify-content-center">
+                <div class="korea-map">
+                  <svg id="koreaSvg" viewBox="0 0 400 500" xmlns="http://www.w3.org/2000/svg">
+                    <!-- 한반도 배경 실루엣 (간략화) -->
+                    <rect width="400" height="500" fill="#f0f4ff" rx="8"/>
+                    <text x="200" y="20" text-anchor="middle" font-size="11" fill="#aab4cc" font-weight="600">대한민국 선발자 분포</text>
+                    <g id="mapBubbles"></g>
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- 지역별 수평 막대 차트 -->
+          <div class="col-lg-4">
+            <div class="card h-100">
+              <div class="card-header"><i class="bi bi-bar-chart-steps"></i> 지역별 선발 인원</div>
+              <div class="card-body">
+                <canvas id="regionChart" style="max-height:380px;"></canvas>
+              </div>
+            </div>
+          </div>
+          <!-- 점수 리더보드 -->
+          <div class="col-lg-4">
+            <div class="card h-100">
+              <div class="card-header"><i class="bi bi-list-ol"></i> 선발 순위 (상위 10명)</div>
+              <div class="card-body p-0" id="leaderboardList" style="overflow-y:auto;max-height:420px;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -258,7 +315,7 @@ _INDEX_HTML = r"""<!DOCTYPE html>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 let G = { selected:[], all:[], stats:null, warnings:[], log:'' };
-let gradeChart=null, scoreChart=null;
+let gradeChart=null, scoreChart=null, regionChart=null;
 
 function onFileSelect(input) {
   const f = input.files[0]; if(!f) return;
@@ -302,7 +359,7 @@ function applyData(data) {
   G.selected=data.results||[]; G.all=data.all_results||[];
   G.stats=data.stats||{}; G.warnings=data.warnings||[]; G.log=data.log||'';
   if(!data.is_demo && G.selected.length>0) addToExcluded(G.selected.map(r=>r['성명']));
-  renderResult(data); renderStats(data.stats);
+  renderResult(data); renderStats(data.stats); renderDashboard(data);
   if(G.log){ document.getElementById('logContent').textContent=G.log; document.getElementById('logSection').classList.remove('d-none'); }
 }
 
@@ -380,6 +437,80 @@ function showAlert(type,html){document.getElementById('alertBox').innerHTML='<di
 function clearAlert(){document.getElementById('alertBox').innerHTML='';}
 function esc(s){return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 
+// ── 지역 대시보드 ──
+const REGION_POS = {
+  '서울':[200,108],'인천':[165,118],'경기':[198,135],
+  '강원':[295,100],'충북':[245,168],'충남':[178,185],
+  '대전':[210,188],'세종':[205,175],'전북':[193,235],
+  '전남':[185,290],'광주':[175,268],'경북':[298,178],
+  '대구':[278,210],'경남':[270,265],'울산':[308,238],
+  '부산':[292,278],'제주':[188,380],
+};
+
+function renderDashboard(data) {
+  document.getElementById('dashEmpty').classList.add('d-none');
+  document.getElementById('dashContent').classList.remove('d-none');
+  const st = data.stats||{};
+  document.getElementById('dashMetrics').innerHTML = mkMetrics([
+    {label:'총 신청자',   value:(data.total_applicants||0)+'명', icon:'people'},
+    {label:'최종 선발',   value:(data.selected_count||0)+'명',   icon:'trophy', color:'text-success'},
+    {label:'선발률',      value:(st.selection_rate||0)+'%',      icon:'percent'},
+    {label:'평균 총점',   value:(st.avg_score||0)+'점',          icon:'star'},
+    {label:'지역 확인',   value:Object.keys(st.region_dist||{}).filter(k=>k!=='미확인').length+'개 지역', icon:'geo-alt'},
+  ]);
+  drawKoreaMap(st.region_dist||{});
+  drawRegionChart(st.region_dist||{});
+  drawLeaderboard(G.selected);
+}
+
+function drawKoreaMap(rd) {
+  const g = document.getElementById('mapBubbles');
+  g.innerHTML = '';
+  const counts = Object.values(rd).filter(v=>v>0);
+  const maxC = counts.length ? Math.max(...counts) : 1;
+  Object.entries(REGION_POS).forEach(([name,[cx,cy]])=>{
+    const cnt = rd[name]||0;
+    const r = cnt>0 ? Math.max(14, Math.min(36, 14 + (cnt/maxC)*22)) : 6;
+    const alpha = cnt>0 ? 0.75 : 0.12;
+    g.insertAdjacentHTML('beforeend',
+      `<circle class="map-bubble" cx="${cx}" cy="${cy}" r="${r}" fill-opacity="${alpha}"/>` +
+      `<text class="map-label" x="${cx}" y="${cy}">${name}${cnt>0?'\n'+cnt:''}</text>` +
+      (cnt>0?`<text class="map-label" x="${cx}" y="${cy+10}" style="font-size:8px">${cnt}명</text>`:'')
+    );
+  });
+}
+
+function drawRegionChart(rd) {
+  const sorted = Object.entries(rd).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]);
+  const labels = sorted.map(([k])=>k), vals = sorted.map(([,v])=>v);
+  if(regionChart) regionChart.destroy();
+  if(!labels.length) return;
+  regionChart = new Chart(document.getElementById('regionChart').getContext('2d'),{
+    type:'bar',
+    data:{labels, datasets:[{label:'선발 인원',data:vals,
+      backgroundColor:'#1a3a8fcc',borderColor:'#0d1b5e',borderWidth:1}]},
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{x:{beginAtZero:true,ticks:{stepSize:1}},y:{ticks:{font:{size:11}}}}}
+  });
+}
+
+function drawLeaderboard(sel) {
+  const lb = document.getElementById('leaderboardList');
+  lb.innerHTML = '';
+  const medals = ['🥇','🥈','🥉'];
+  sel.slice(0,10).forEach((r,i)=>{
+    const medal = i<3?medals[i]:''+(i+1)+'.';
+    lb.insertAdjacentHTML('beforeend',
+      `<div class="leaderboard-item">
+        <span class="lb-rank">${medal}</span>
+        <span class="lb-name">${esc(r['성명'])}<br><span class="lb-region">${esc(r['지역']||'미확인')} · ${esc(r['학년'])}</span></span>
+        <span class="lb-score">${r['총점']}점</span>
+      </div>`
+    );
+  });
+}
+
 // ── 이전 선발자 제외 관리 (localStorage 영속화) ──
 const _EK='hanyang_excluded';
 function loadExcluded(){try{return new Set(JSON.parse(localStorage.getItem(_EK)||'[]'));}catch{return new Set();}}
@@ -456,6 +587,14 @@ MILITARY_KEYWORDS  = ["병역","현역","예비역","만기전역","군필","복
 DOC_ELIGIBILITY_KW = ["자립지원 대상자 확인서","자립지원대상자확인서","자립준비청년 확인서"]
 DOC_ENROLLMENT_KW  = ["재학증명서","재학 증명서"]
 DOC_TRANSCRIPT_KW  = ["성적증명서","성적표","학업성적","성적 증명서"]
+REGION_MAP: Dict[str, List[str]] = {
+    "서울":["서울특별시"],"인천":["인천광역시"],"경기":["경기도"],
+    "강원":["강원특별자치도","강원도"],"충북":["충청북도"],"충남":["충청남도"],
+    "대전":["대전광역시"],"세종":["세종특별자치시","세종시"],
+    "전북":["전북특별자치도","전라북도"],"전남":["전라남도"],"광주":["광주광역시"],
+    "경북":["경상북도"],"대구":["대구광역시"],"경남":["경상남도"],
+    "울산":["울산광역시"],"부산":["부산광역시"],"제주":["제주특별자치도","제주도"],
+}
 
 # ──────────────────────────────────────────────────────────────────────
 # 데이터 클래스
@@ -471,7 +610,7 @@ class ApplicantData:
     parse_notes: List[str] = field(default_factory=list)
     grade_score: float = 0.0; completion_rate: float = 0.0; completion_score: float = 0.0
     bonus_stem: bool = False; bonus_cert: bool = False; bonus_volunteer: bool = False
-    bonus_score: float = 0.0; total_score: float = 0.0
+    bonus_score: float = 0.0; total_score: float = 0.0; region: str = ""
 
 # ──────────────────────────────────────────────────────────────────────
 # 민감 정보 마스킹
@@ -566,6 +705,18 @@ class PDFParser:
     def check_military(text: str) -> bool:
         return any(k in text for k in MILITARY_KEYWORDS)
 
+    @staticmethod
+    def extract_region(text: str) -> Optional[str]:
+        for pat in [r"(?:주소|거주지|현주소|주거지)\s*[：:]\s*([^\n\r]{4,80})",
+                    r"([가-힣]+(특별시|광역시|특별자치시|특별자치도|도)\b[^\n\r]{0,30})"]:
+            m = re.search(pat, text)
+            if m:
+                addr = m.group(1).strip()
+                for region, keywords in REGION_MAP.items():
+                    if any(kw in addr for kw in keywords):
+                        return region
+        return None
+
 # ──────────────────────────────────────────────────────────────────────
 # 점수 계산 엔진
 # ──────────────────────────────────────────────────────────────────────
@@ -632,6 +783,9 @@ class DocumentProcessor:
 
     def _apply(self, a: ApplicantData, dt: str, text: str):
         p=self._p
+        if not a.region:
+            r=p.extract_region(text)
+            if r: a.region=r
         if dt=="eligibility": a.is_eligible=True
         elif dt=="enrollment":
             a.has_enrollment=True
@@ -687,6 +841,7 @@ def select_scholars(applicants: List[ApplicantData], n: int=MAX_SCHOLARS, exclud
     records=[]
     for a in eligible:
         records.append({"성명":a.name,"학년":f"{a.grade}학년" if a.grade>0 else "미확인","_학년숫자":a.grade,
+            "지역":a.region or "미확인",
             "전공":a.major or "미확인","이수학점":a.completed_credits,"졸업기준학점":a.graduation_credits,
             "이수율":round(a.completion_rate*100,1),"_이수율정렬":a.completion_rate,"GPA":a.gpa,
             "학년점수":a.grade_score,"이수율점수":a.completion_score,"가산점":a.bonus_score,"총점":a.total_score,
@@ -704,25 +859,29 @@ def build_report(selected: List[Dict], total: int) -> Dict[str,Any]:
     n=len(selected); scores=[r["총점"] for r in selected]; comp=[r["이수율"] for r in selected]; gpas=[r["GPA"] for r in selected]
     gd: Dict[str,int]={}
     for r in selected: gd[r["학년"]]=gd.get(r["학년"],0)+1
+    rd: Dict[str,int]={}
+    for r in selected: rd[r.get("지역","미확인")]=rd.get(r.get("지역","미확인"),0)+1
     stem=sum(1 for r in selected if r["이공계방산"]=="✓")
     cert=sum(1 for r in selected if r["자격증어학"]=="✓")
     vol =sum(1 for r in selected if r["봉사50h"]=="✓")
     return {"total_applicants":total,"selected_count":n,"selection_rate":round(n/total*100,1) if total else 0,
             "avg_score":round(sum(scores)/n,2),"max_score":round(max(scores),2),"min_score":round(min(scores),2),
-            "avg_completion":round(sum(comp)/n,1),"avg_gpa":round(sum(gpas)/n,2),"grade_dist":gd,
+            "avg_completion":round(sum(comp)/n,1),"avg_gpa":round(sum(gpas)/n,2),"grade_dist":gd,"region_dist":rd,
             "stem_count":stem,"stem_rate":round(stem/n*100,1),"cert_count":cert,"vol_count":vol}
 
 def make_demo_applicants(n: int=30) -> List[ApplicantData]:
     random.seed(42)
     names=["김민준","이서연","박도윤","최서현","정예은","강지호","조수아","윤민서","장하은","임준혁","오지원","한소율","신재현","권나연","유태양","배수빈","노현우","심지유","문성민","허다은","서지훈","안채원","남기태","고은서","류민호","전수현","양준서","설아린","마지현","제갈민"]
     majors=["컴퓨터공학과","전자공학과","기계공학과","국방학과","경영학과","사회복지학과","심리학과","소프트웨어학과","방위산업학과","화학공학과"]
+    demo_regions=["서울","서울","서울","경기","경기","경기","인천","부산","대구","광주","대전","충남","충북","전북","전남","경북","경남","강원","울산","세종","제주","서울","경기","부산","대구","인천","경남","충남","전북","경북"]
     results=[]
     for i in range(n):
         a=ApplicantData(applicant_key=f"demo_{i}",name=names[i%len(names)],grade=random.randint(1,4),
             major=majors[random.randint(0,len(majors)-1)],completed_credits=round(random.uniform(10,135),1),
             graduation_credits=random.choice([120.0,130.0,140.0]),gpa=round(random.uniform(1.5,4.3),2),
             has_certificate=random.random()>0.5,volunteer_hours=random.choice([0,20,55,80,100]),
-            is_eligible=random.random()>0.1,has_enrollment=True,has_transcript=True)
+            is_eligible=random.random()>0.1,has_enrollment=True,has_transcript=True,
+            region=demo_regions[i%len(demo_regions)])
         ScoringEngine.calculate(a); results.append(a)
     return results
 
