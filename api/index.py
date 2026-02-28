@@ -131,10 +131,10 @@ _INDEX_HTML = r"""<!DOCTYPE html>
                   <tr><td>가산점</td><td>최대 10점</td></tr>
                 </tbody>
               </table>
-              <p class="fw-semibold mb-1">학년별 점수</p>
+              <p class="fw-semibold mb-1">학년 점수 <span class="badge bg-success" style="font-size:.72rem">2·3·4년제 정규화</span></p>
               <ul class="mb-2">
-                <li>4학년 → 50점 &nbsp;|&nbsp; 3학년 → 35점</li>
-                <li>2학년 → 20점 &nbsp;|&nbsp; 1학년 → 5점</li>
+                <li style="font-size:.82rem"><strong>(현재 학년 ÷ 학제 총 학년) × 50점</strong></li>
+                <li style="font-size:.82rem">4년제 4학년·3년제 3학년·2년제 2학년 → 모두 <strong>50점</strong></li>
               </ul>
               <p class="fw-semibold mb-1">가산점 세부</p>
               <ul class="mb-2">
@@ -215,7 +215,7 @@ _INDEX_HTML = r"""<!DOCTYPE html>
           <div class="card-body p-0">
             <div class="table-scroll">
               <table class="table table-hover table-sm mb-0">
-                <thead><tr><th>순위</th><th>성명</th><th>학년</th><th>전공</th><th>이수학점</th><th>졸업기준</th><th>이수율(%)</th><th>GPA</th><th>학년점수</th><th>이수율점수</th><th>가산점</th><th>총점</th><th>이공계</th><th>자격증</th><th>봉사</th></tr></thead>
+                <thead><tr><th>순위</th><th>성명</th><th>학제</th><th>학년</th><th>전공</th><th>이수학점</th><th>졸업기준</th><th>이수율(%)</th><th>GPA</th><th>학년점수</th><th>이수율점수</th><th>가산점</th><th>총점</th><th>이공계</th><th>자격증</th><th>봉사</th></tr></thead>
                 <tbody id="resultTbody"></tbody>
               </table>
             </div>
@@ -377,7 +377,7 @@ function renderResult(data) {
   const tb = document.getElementById('resultTbody'); tb.innerHTML='';
   G.selected.forEach(r => {
     const cls = r['순위']===1?'rank-1':r['순위']===2?'rank-2':r['순위']===3?'rank-3':'';
-    tb.insertAdjacentHTML('beforeend','<tr class="'+cls+'"><td><strong>'+r['순위']+'</strong></td><td>'+esc(r['성명'])+'</td><td>'+esc(r['학년'])+'</td><td class="text-nowrap">'+esc(r['전공'])+'</td><td>'+r['이수학점']+'</td><td>'+r['졸업기준학점']+'</td><td><strong>'+r['이수율']+'%</strong></td><td>'+r['GPA']+'</td><td>'+r['학년점수']+'</td><td>'+r['이수율점수']+'</td><td>'+r['가산점']+'</td><td><strong>'+r['총점']+'</strong></td><td class="check-mark text-center">'+(r['이공계방산']||'')+'</td><td class="check-mark text-center">'+(r['자격증어학']||'')+'</td><td class="check-mark text-center">'+(r['봉사50h']||'')+'</td></tr>');
+    tb.insertAdjacentHTML('beforeend','<tr class="'+cls+'"><td><strong>'+r['순위']+'</strong></td><td>'+esc(r['성명'])+'</td><td class="text-center"><span class="badge bg-secondary">'+esc(r['학제']||'4년제')+'</span></td><td>'+esc(r['학년'])+'</td><td class="text-nowrap">'+esc(r['전공'])+'</td><td>'+r['이수학점']+'</td><td>'+r['졸업기준학점']+'</td><td><strong>'+r['이수율']+'%</strong></td><td>'+r['GPA']+'</td><td>'+r['학년점수']+'</td><td>'+r['이수율점수']+'</td><td>'+r['가산점']+'</td><td><strong>'+r['총점']+'</strong></td><td class="check-mark text-center">'+(r['이공계방산']||'')+'</td><td class="check-mark text-center">'+(r['자격증어학']||'')+'</td><td class="check-mark text-center">'+(r['봉사50h']||'')+'</td></tr>');
   });
   if(G.warnings.length>0){
     document.getElementById('warningSection').classList.remove('d-none');
@@ -451,6 +451,7 @@ function generateReport() {
   const schRows = G.selected.map(r=>`<tr>
     <td style="text-align:center;font-weight:700;color:#0d1b5e">${r['순위']}</td>
     <td style="text-align:center;font-weight:700">${esc(r['성명'])}</td>
+    <td style="text-align:center;font-size:11px">${esc(r['학제']||'4년제')}</td>
     <td style="text-align:center">${esc(r['지역']||'미확인')}</td>
     <td style="font-size:11px">${esc(r['전공'])}</td>
     <td style="text-align:center">${esc(r['학년'])}</td>
@@ -554,7 +555,7 @@ table.doc-table{font-size:10.5px;}
   <table class="sub-table" style="width:100%;margin-bottom:8px">
     <thead><tr><th style="width:28%;text-align:left">평가 항목</th><th style="width:18%">배점</th><th style="text-align:left">세부 기준</th></tr></thead>
     <tbody>
-      <tr><td style="text-align:left;font-weight:600">학년 점수</td><td>최대 50점</td><td style="text-align:left">4학년 50점 · 3학년 35점 · 2학년 20점 · 1학년 5점</td></tr>
+      <tr><td style="text-align:left;font-weight:600">학년 점수</td><td>최대 50점</td><td style="text-align:left">(현재 학년 ÷ 학제 총 학년) × 50점 &nbsp;<span style="background:#1a6b3a;color:#fff;font-size:10px;padding:1px 6px;border-radius:3px">2·3·4년제 공평 정규화</span></td></tr>
       <tr><td style="text-align:left;font-weight:600">학업 이수율</td><td>최대 50점</td><td style="text-align:left">취득학점 ÷ 졸업기준학점 × 50점</td></tr>
       <tr><td style="text-align:left;font-weight:600">가산점</td><td>최대 10점</td><td style="text-align:left">이공계·방산 전공 +5점 &nbsp;·&nbsp; 국가자격증·어학성적 +3점 &nbsp;·&nbsp; 봉사 50시간 이상 +2점</td></tr>
       <tr style="background:#f0f4ff"><td style="text-align:left;font-weight:800">합 계</td><td style="font-weight:800">최대 110점</td><td style="text-align:left;font-size:12px">총점 기준 내림차순 선발 (동점 시: 이수율 → 학년 → GPA 순)</td></tr>
@@ -588,7 +589,7 @@ table.doc-table{font-size:10.5px;}
   <div class="sec"><span class="sec-num">Ⅳ</span>최종 선발자 명단</div>
   <table class="doc-table">
     <thead><tr>
-      <th style="width:38px">순위</th><th>성명</th><th>지역</th><th>전공</th><th>학년</th>
+      <th style="width:38px">순위</th><th>성명</th><th>학제</th><th>지역</th><th>전공</th><th>학년</th>
       <th>GPA</th><th>이수율</th><th>총점</th><th title="이공계·방산 전공">이공계</th><th title="자격증·어학성적">자격증</th><th title="봉사 50h 이상">봉사</th>
     </tr></thead>
     <tbody>${schRows}</tbody>
@@ -773,7 +774,7 @@ def _flush_log() -> str:
 # ──────────────────────────────────────────────────────────────────────
 # 전역 상수
 # ──────────────────────────────────────────────────────────────────────
-GRADE_SCORES: Dict[int, int] = {4: 50, 3: 35, 2: 20, 1: 5}
+# 학년 점수: (현재학년 ÷ 학제총학년) × 50 — 2·3·4년제 공평 정규화
 MAX_SCHOLARS: int = 50
 DEFAULT_GRAD_CREDITS: float = 120.0
 
@@ -807,7 +808,7 @@ class ApplicantData:
     parse_notes: List[str] = field(default_factory=list)
     grade_score: float = 0.0; completion_rate: float = 0.0; completion_score: float = 0.0
     bonus_stem: bool = False; bonus_cert: bool = False; bonus_volunteer: bool = False
-    bonus_score: float = 0.0; total_score: float = 0.0; region: str = ""
+    bonus_score: float = 0.0; total_score: float = 0.0; region: str = ""; max_grade: int = 4
 
 # ──────────────────────────────────────────────────────────────────────
 # 민감 정보 마스킹
@@ -903,6 +904,20 @@ class PDFParser:
         return any(k in text for k in MILITARY_KEYWORDS)
 
     @staticmethod
+    def extract_max_grade(text: str) -> Optional[int]:
+        """수업연한 / 학제 키워드로 2·3·4년제 감지"""
+        for p in [r"수업\s*연한\s*[：:\s]*([2-4])\s*년",
+                  r"([2-4])\s*년\s*제",
+                  r"학\s*제\s*[：:\s]*([2-4])\s*년"]:
+            m = re.search(p, text)
+            if m:
+                return int(m.group(1))
+        # 학위 유형으로 추정
+        if "전문학사" in text:
+            return 2
+        return None
+
+    @staticmethod
     def extract_region(text: str) -> Optional[str]:
         for pat in [r"(?:주소|거주지|현주소|주거지)\s*[：:]\s*([^\n\r]{4,80})",
                     r"([가-힣]+(특별시|광역시|특별자치시|특별자치도|도)\b[^\n\r]{0,30})"]:
@@ -920,7 +935,11 @@ class PDFParser:
 class ScoringEngine:
     @staticmethod
     def calculate(a: ApplicantData) -> ApplicantData:
-        a.grade_score = float(GRADE_SCORES.get(a.grade, 0))
+        # 학년 점수: (현재학년 ÷ 학제총학년) × 50 — 2·3·4년제 정규화
+        if a.grade > 0 and a.max_grade > 0:
+            a.grade_score = round((a.grade / a.max_grade) * 50, 2)
+        else:
+            a.grade_score = 0.0
         if a.graduation_credits > 0:
             rate = min(a.completed_credits / a.graduation_credits, 1.0)
             a.completion_rate = rate; a.completion_score = round(rate*50, 2)
@@ -983,6 +1002,8 @@ class DocumentProcessor:
         if not a.region:
             r=p.extract_region(text)
             if r: a.region=r
+        mg=p.extract_max_grade(text)
+        if mg and mg!=a.max_grade and mg in (2,3,4): a.max_grade=mg
         if dt=="eligibility": a.is_eligible=True
         elif dt=="enrollment":
             a.has_enrollment=True
@@ -992,7 +1013,11 @@ class DocumentProcessor:
             a.has_transcript=True
             comp,grad=p.extract_credits(text)
             if comp is not None: a.completed_credits=comp
-            if grad is not None: a.graduation_credits=grad
+            if grad is not None:
+                a.graduation_credits=grad
+                # 졸업기준학점으로 학제 보조 추론 (키워드 미감지 시 fallback)
+                if a.max_grade==4 and grad < 90: a.max_grade=2
+                elif a.max_grade==4 and grad < 115: a.max_grade=3
             gpa=p.extract_gpa(text)
             if gpa is not None: a.gpa=gpa
             if a.grade==0:
@@ -1038,7 +1063,7 @@ def select_scholars(applicants: List[ApplicantData], n: int=MAX_SCHOLARS, exclud
     records=[]
     for a in eligible:
         records.append({"성명":a.name,"학년":f"{a.grade}학년" if a.grade>0 else "미확인","_학년숫자":a.grade,
-            "지역":a.region or "미확인",
+            "학제":f"{a.max_grade}년제","지역":a.region or "미확인",
             "전공":a.major or "미확인","이수학점":a.completed_credits,"졸업기준학점":a.graduation_credits,
             "이수율":round(a.completion_rate*100,1),"_이수율정렬":a.completion_rate,"GPA":a.gpa,
             "학년점수":a.grade_score,"이수율점수":a.completion_score,"가산점":a.bonus_score,"총점":a.total_score,
@@ -1071,12 +1096,17 @@ def make_demo_applicants(n: int=30) -> List[ApplicantData]:
     names=["김민준","이서연","박도윤","최서현","정예은","강지호","조수아","윤민서","장하은","임준혁","오지원","한소율","신재현","권나연","유태양","배수빈","노현우","심지유","문성민","허다은","서지훈","안채원","남기태","고은서","류민호","전수현","양준서","설아린","마지현","제갈민"]
     majors=["컴퓨터공학과","전자공학과","기계공학과","국방학과","경영학과","사회복지학과","심리학과","소프트웨어학과","방위산업학과","화학공학과"]
     demo_regions=["서울","서울","서울","경기","경기","경기","인천","부산","대구","광주","대전","충남","충북","전북","전남","경북","경남","강원","울산","세종","제주","서울","경기","부산","대구","인천","경남","충남","전북","경북"]
+    # 학제 구성: 4년제 22명, 3년제 5명, 2년제 3명
+    demo_max_grades=[4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,3,3,3,3,3,2,2,2]
     results=[]
     for i in range(n):
-        a=ApplicantData(applicant_key=f"demo_{i}",name=names[i%len(names)],grade=random.randint(1,4),
-            major=majors[random.randint(0,len(majors)-1)],completed_credits=round(random.uniform(10,135),1),
-            graduation_credits=random.choice([120.0,130.0,140.0]),gpa=round(random.uniform(1.5,4.3),2),
-            has_certificate=random.random()>0.5,volunteer_hours=random.choice([0,20,55,80,100]),
+        mg=demo_max_grades[i%len(demo_max_grades)]
+        gc={4:random.choice([120.0,130.0,140.0]),3:random.choice([95.0,105.0]),2:random.choice([65.0,75.0])}[mg]
+        a=ApplicantData(applicant_key=f"demo_{i}",name=names[i%len(names)],grade=random.randint(1,mg),
+            max_grade=mg,major=majors[random.randint(0,len(majors)-1)],
+            completed_credits=round(random.uniform(10,gc),1),graduation_credits=gc,
+            gpa=round(random.uniform(1.5,4.3),2),has_certificate=random.random()>0.5,
+            volunteer_hours=random.choice([0,20,55,80,100]),
             is_eligible=random.random()>0.1,has_enrollment=True,has_transcript=True,
             region=demo_regions[i%len(demo_regions)])
         ScoringEngine.calculate(a); results.append(a)
