@@ -128,7 +128,7 @@ _INDEX_HTML = r"""<!DOCTYPE html>
                 <tbody>
                   <tr><td>학년 점수</td><td>최대 50점</td></tr>
                   <tr><td>학업 이수율</td><td>최대 50점</td></tr>
-                  <tr><td>가산점</td><td>최대 10점</td></tr>
+                  <tr><td>가산점</td><td>최대 5점</td></tr>
                 </tbody>
               </table>
               <p class="fw-semibold mb-1">학년 점수 <span class="badge bg-success" style="font-size:.72rem">2·3·4년제 정규화</span></p>
@@ -138,7 +138,6 @@ _INDEX_HTML = r"""<!DOCTYPE html>
               </ul>
               <p class="fw-semibold mb-1">가산점 세부</p>
               <ul class="mb-2">
-                <li>이공계/방산 전공 → <span class="text-success fw-bold">+5</span></li>
                 <li>국가자격증/어학 → <span class="text-success fw-bold">+3</span></li>
                 <li>봉사 50h 이상 → <span class="text-success fw-bold">+2</span></li>
               </ul>
@@ -215,7 +214,7 @@ _INDEX_HTML = r"""<!DOCTYPE html>
           <div class="card-body p-0">
             <div class="table-scroll">
               <table class="table table-hover table-sm mb-0">
-                <thead><tr><th>순위</th><th>성명</th><th>학제</th><th>학년</th><th>전공</th><th>이수학점</th><th>졸업기준</th><th>이수율(%)</th><th>GPA</th><th>학년점수</th><th>이수율점수</th><th>가산점</th><th>총점</th><th>이공계</th><th>자격증</th><th>봉사</th></tr></thead>
+                <thead><tr><th>순위</th><th>성명</th><th>학제</th><th>학년</th><th>전공</th><th>이수학점</th><th>졸업기준</th><th>이수율(%)</th><th>GPA</th><th>학년점수</th><th>이수율점수</th><th>가산점</th><th>총점</th><th>자격증</th><th>봉사</th></tr></thead>
                 <tbody id="resultTbody"></tbody>
               </table>
             </div>
@@ -377,7 +376,7 @@ function renderResult(data) {
   const tb = document.getElementById('resultTbody'); tb.innerHTML='';
   G.selected.forEach(r => {
     const cls = r['순위']===1?'rank-1':r['순위']===2?'rank-2':r['순위']===3?'rank-3':'';
-    tb.insertAdjacentHTML('beforeend','<tr class="'+cls+'"><td><strong>'+r['순위']+'</strong></td><td>'+esc(r['성명'])+'</td><td class="text-center"><span class="badge bg-secondary">'+esc(r['학제']||'4년제')+'</span></td><td>'+esc(r['학년'])+'</td><td class="text-nowrap">'+esc(r['전공'])+'</td><td>'+r['이수학점']+'</td><td>'+r['졸업기준학점']+'</td><td><strong>'+r['이수율']+'%</strong></td><td>'+r['GPA']+'</td><td>'+r['학년점수']+'</td><td>'+r['이수율점수']+'</td><td>'+r['가산점']+'</td><td><strong>'+r['총점']+'</strong></td><td class="check-mark text-center">'+(r['이공계방산']||'')+'</td><td class="check-mark text-center">'+(r['자격증어학']||'')+'</td><td class="check-mark text-center">'+(r['봉사50h']||'')+'</td></tr>');
+    tb.insertAdjacentHTML('beforeend','<tr class="'+cls+'"><td><strong>'+r['순위']+'</strong></td><td>'+esc(r['성명'])+'</td><td class="text-center"><span class="badge bg-secondary">'+esc(r['학제']||'4년제')+'</span></td><td>'+esc(r['학년'])+'</td><td class="text-nowrap">'+esc(r['전공'])+'</td><td>'+r['이수학점']+'</td><td>'+r['졸업기준학점']+'</td><td><strong>'+r['이수율']+'%</strong></td><td>'+r['GPA']+'</td><td>'+r['학년점수']+'</td><td>'+r['이수율점수']+'</td><td>'+r['가산점']+'</td><td><strong>'+r['총점']+'</strong></td><td class="check-mark text-center">'+(r['자격증어학']||'')+'</td><td class="check-mark text-center">'+(r['봉사50h']||'')+'</td></tr>');
   });
   if(G.warnings.length>0){
     document.getElementById('warningSection').classList.remove('d-none');
@@ -399,9 +398,8 @@ function renderStats(stats) {
     {label:'평균 이수율', value:stats.avg_completion+'%',    icon:'journal-check'},
   ]);
   document.getElementById('bonusMetrics').innerHTML = mkMetrics([
-    {label:'이공계/방산 전공자', value:stats.stem_count+'명 ('+stats.stem_rate+'%)', icon:'cpu'},
-    {label:'자격증/어학 성적',   value:stats.cert_count+'명', icon:'award'},
-    {label:'봉사 50h 이상',      value:stats.vol_count+'명',  icon:'heart'},
+    {label:'자격증/어학 성적', value:stats.cert_count+'명', icon:'award'},
+    {label:'봉사 50h 이상',    value:stats.vol_count+'명',  icon:'heart'},
   ]);
   const gl=Object.keys(stats.grade_dist).sort().reverse();
   mkChart('gradeChart', gl, gl.map(k=>stats.grade_dist[k]), '선발 인원','#1a3a8f', c=>gradeChart=c, gradeChart);
@@ -411,7 +409,7 @@ function renderStats(stats) {
     '<strong>한영자 희망 장학재단 2026년도 장학생 선발 결과 보고</strong><br><br>' +
     '본 재단은 <strong>자립준비청년의 실질적 자립 지원</strong>을 목적으로, 자립지원 대상자 <strong>'+stats.total_applicants+'명</strong>의 지원서를 심사하였습니다.<br><br>' +
     '학년 점수, 학업 이수율, 사회적 역량을 종합하여 <strong>'+stats.selected_count+'명</strong>을 최종 선발하였으며, 평균 점수는 <strong>'+stats.avg_score+'점</strong> (최고 '+stats.max_score+'점 / 최저 '+stats.min_score+'점), 평균 이수율은 <strong>'+stats.avg_completion+'%</strong>입니다.<br><br>' +
-    '후원사 <strong>삼양</strong>의 방산기업 특성을 반영하여 이공계·방산 전공자 <strong>'+stats.stem_count+'명('+stats.stem_rate+'%)</strong>에게 가산점이 부여되었습니다. 수여식은 <strong>2026년 4월 30일</strong>입니다.<br><br>' +
+    '국가자격증·어학성적 보유자 <strong>'+stats.cert_count+'명</strong>, 봉사 50시간 이상 달성자 <strong>'+stats.vol_count+'명</strong>에게 가산점이 부여되었습니다. 수여식은 <strong>2026년 4월 30일</strong>입니다.<br><br>' +
     '<em>이사장 전동진 &nbsp;印 &nbsp;&nbsp; 사무국장 임재영 &nbsp;印</em>';
 }
 
@@ -458,7 +456,6 @@ function generateReport() {
     <td style="text-align:center">${r['GPA']}</td>
     <td style="text-align:center">${r['이수율']}%</td>
     <td style="text-align:center;font-weight:800;color:#0d1b5e">${r['총점']}</td>
-    <td style="text-align:center;color:#1a6b3a">${r['이공계방산']?'●':''}</td>
     <td style="text-align:center;color:#1a6b3a">${r['자격증어학']?'●':''}</td>
     <td style="text-align:center;color:#1a6b3a">${r['봉사50h']?'●':''}</td>
   </tr>`).join('');
@@ -557,8 +554,8 @@ table.doc-table{font-size:10.5px;}
     <tbody>
       <tr><td style="text-align:left;font-weight:600">학년 점수</td><td>최대 50점</td><td style="text-align:left">(현재 학년 ÷ 학제 총 학년) × 50점 &nbsp;<span style="background:#1a6b3a;color:#fff;font-size:10px;padding:1px 6px;border-radius:3px">2·3·4년제 공평 정규화</span></td></tr>
       <tr><td style="text-align:left;font-weight:600">학업 이수율</td><td>최대 50점</td><td style="text-align:left">취득학점 ÷ 졸업기준학점 × 50점</td></tr>
-      <tr><td style="text-align:left;font-weight:600">가산점</td><td>최대 10점</td><td style="text-align:left">이공계·방산 전공 +5점 &nbsp;·&nbsp; 국가자격증·어학성적 +3점 &nbsp;·&nbsp; 봉사 50시간 이상 +2점</td></tr>
-      <tr style="background:#f0f4ff"><td style="text-align:left;font-weight:800">합 계</td><td style="font-weight:800">최대 110점</td><td style="text-align:left;font-size:12px">총점 기준 내림차순 선발 (동점 시: 이수율 → 학년 → GPA 순)</td></tr>
+      <tr><td style="text-align:left;font-weight:600">가산점</td><td>최대 5점</td><td style="text-align:left">국가자격증·어학성적 +3점 &nbsp;·&nbsp; 봉사 50시간 이상 +2점</td></tr>
+      <tr style="background:#f0f4ff"><td style="text-align:left;font-weight:800">합 계</td><td style="font-weight:800">최대 105점</td><td style="text-align:left;font-size:12px">총점 기준 내림차순 선발 (동점 시: 이수율 → 학년 → GPA 순)</td></tr>
     </tbody>
   </table>
   <p style="font-size:12px;color:#888;margin-bottom:0">※ 「자립지원 대상자 확인서」 미제출자는 자격 심사 이전에 자동 제외됩니다.</p>
@@ -581,7 +578,6 @@ table.doc-table{font-size:10.5px;}
     <table class="sub-table"><thead><tr><th>지역</th><th>인원</th><th>비율</th></tr></thead><tbody>${rdRows}</tbody></table></div>`:''}
   </div>
   <div style="display:flex;gap:10px;flex-wrap:wrap">
-    <div style="font-size:12.5px;background:#f0f4ff;padding:8px 14px;border-radius:4px;border:1px solid #d0d8f0"><strong>이공계·방산 전공</strong>: ${st.stem_count||0}명 (${st.stem_rate||0}%)</div>
     <div style="font-size:12.5px;background:#f0f4ff;padding:8px 14px;border-radius:4px;border:1px solid #d0d8f0"><strong>자격증·어학성적 보유</strong>: ${st.cert_count||0}명</div>
     <div style="font-size:12.5px;background:#f0f4ff;padding:8px 14px;border-radius:4px;border:1px solid #d0d8f0"><strong>봉사 50시간 이상</strong>: ${st.vol_count||0}명</div>
   </div>
@@ -590,11 +586,11 @@ table.doc-table{font-size:10.5px;}
   <table class="doc-table">
     <thead><tr>
       <th style="width:38px">순위</th><th>성명</th><th>학제</th><th>지역</th><th>전공</th><th>학년</th>
-      <th>GPA</th><th>이수율</th><th>총점</th><th title="이공계·방산 전공">이공계</th><th title="자격증·어학성적">자격증</th><th title="봉사 50h 이상">봉사</th>
+      <th>GPA</th><th>이수율</th><th>총점</th><th title="자격증·어학성적">자격증</th><th title="봉사 50h 이상">봉사</th>
     </tr></thead>
     <tbody>${schRows}</tbody>
   </table>
-  <p style="font-size:11px;color:#999;margin-top:6px">※ 이공계 = 이공계·방산 전공 가산점 &nbsp;·&nbsp; 자격증 = 국가자격증·어학성적 &nbsp;·&nbsp; 봉사 = 50시간 이상 달성 &nbsp;·&nbsp; ● 해당</p>
+  <p style="font-size:11px;color:#999;margin-top:6px">※ 자격증 = 국가자격증·어학성적 보유 &nbsp;·&nbsp; 봉사 = 50시간 이상 달성 &nbsp;·&nbsp; ● 해당</p>
 
   <div class="sig-section">
     <p class="sig-intro">
@@ -778,7 +774,6 @@ def _flush_log() -> str:
 MAX_SCHOLARS: int = 50
 DEFAULT_GRAD_CREDITS: float = 120.0
 
-STEM_KEYWORDS = ["공학","이학","전자","기계","컴퓨터","소프트웨어","정보","국방","방산","항공","우주","화학","물리","수학","전기","통신","로봇","자동화","반도체","에너지","재료","토목","건축","환경","생명","바이오","인공지능","AI","데이터","사이버","보안","국방공학","방위산업","드론","무기체계","레이더","탄약"]
 CERT_KEYWORDS = ["국가기술자격","국가전문자격","기사","산업기사","기능사","기능장","기술사","TOEIC","TOEFL","IELTS","OPIc","JLPT","HSK","토익","토플","오픽","텝스","TEPS","자격증","면허","어학성적"]
 VOLUNTEER_KEYWORDS = ["봉사","자원봉사","사회봉사","봉사활동","봉사시간"]
 MILITARY_KEYWORDS  = ["병역","현역","예비역","만기전역","군필","복무완료","전역","군복무"]
@@ -807,7 +802,7 @@ class ApplicantData:
     raw_texts: Dict[str, str] = field(default_factory=dict)
     parse_notes: List[str] = field(default_factory=list)
     grade_score: float = 0.0; completion_rate: float = 0.0; completion_score: float = 0.0
-    bonus_stem: bool = False; bonus_cert: bool = False; bonus_volunteer: bool = False
+    bonus_cert: bool = False; bonus_volunteer: bool = False
     bonus_score: float = 0.0; total_score: float = 0.0; region: str = ""; max_grade: int = 4
 
 # ──────────────────────────────────────────────────────────────────────
@@ -953,13 +948,11 @@ class ScoringEngine:
             rate = min(a.completed_credits / a.graduation_credits, 1.0)
             a.completion_rate = rate; a.completion_score = round(rate*50, 2)
         bonus = 0
-        a.bonus_stem     = any(k in a.major for k in STEM_KEYWORDS)
-        a.bonus_cert     = a.has_certificate
+        a.bonus_cert      = a.has_certificate
         a.bonus_volunteer = a.volunteer_hours >= 50.0
-        if a.bonus_stem:      bonus += 5
         if a.bonus_cert:      bonus += 3
         if a.bonus_volunteer: bonus += 2
-        a.bonus_score = float(min(bonus, 10))
+        a.bonus_score = float(min(bonus, 5))
         a.total_score = round(a.grade_score + a.completion_score + a.bonus_score, 2)
         return a
 
@@ -1076,7 +1069,7 @@ def select_scholars(applicants: List[ApplicantData], n: int=MAX_SCHOLARS, exclud
             "전공":a.major or "미확인","이수학점":a.completed_credits,"졸업기준학점":a.graduation_credits,
             "이수율":round(a.completion_rate*100,1),"_이수율정렬":a.completion_rate,"GPA":a.gpa,
             "학년점수":a.grade_score,"이수율점수":a.completion_score,"가산점":a.bonus_score,"총점":a.total_score,
-            "이공계방산":"✓" if a.bonus_stem else "","자격증어학":"✓" if a.bonus_cert else "","봉사50h":"✓" if a.bonus_volunteer else "",
+            "자격증어학":"✓" if a.bonus_cert else "","봉사50h":"✓" if a.bonus_volunteer else "",
             "자립확인서":"✓","재학증명서":"✓" if a.has_enrollment else "미확인","성적증명서":"✓" if a.has_transcript else "미확인",
             "비고":" | ".join(a.parse_notes) if a.parse_notes else "정상 처리"})
     records.sort(key=lambda r:(r["총점"],r["_이수율정렬"],r["_학년숫자"],r["GPA"]),reverse=True)
@@ -1092,13 +1085,12 @@ def build_report(selected: List[Dict], total: int) -> Dict[str,Any]:
     for r in selected: gd[r["학년"]]=gd.get(r["학년"],0)+1
     rd: Dict[str,int]={}
     for r in selected: rd[r.get("지역","미확인")]=rd.get(r.get("지역","미확인"),0)+1
-    stem=sum(1 for r in selected if r["이공계방산"]=="✓")
     cert=sum(1 for r in selected if r["자격증어학"]=="✓")
     vol =sum(1 for r in selected if r["봉사50h"]=="✓")
     return {"total_applicants":total,"selected_count":n,"selection_rate":round(n/total*100,1) if total else 0,
             "avg_score":round(sum(scores)/n,2),"max_score":round(max(scores),2),"min_score":round(min(scores),2),
             "avg_completion":round(sum(comp)/n,1),"avg_gpa":round(sum(gpas)/n,2),"grade_dist":gd,"region_dist":rd,
-            "stem_count":stem,"stem_rate":round(stem/n*100,1),"cert_count":cert,"vol_count":vol}
+            "cert_count":cert,"vol_count":vol}
 
 def make_demo_applicants(n: int=30) -> List[ApplicantData]:
     random.seed(42)
