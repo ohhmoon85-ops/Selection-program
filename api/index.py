@@ -905,16 +905,25 @@ class PDFParser:
 
     @staticmethod
     def extract_max_grade(text: str) -> Optional[int]:
-        """수업연한 / 학제 키워드로 2·3·4년제 감지"""
+        """2·3·4년제 감지 — 4단계 우선순위로 판별"""
+        # ① 수업연한 명시 (가장 확실)
         for p in [r"수업\s*연한\s*[：:\s]*([2-4])\s*년",
                   r"([2-4])\s*년\s*제",
                   r"학\s*제\s*[：:\s]*([2-4])\s*년"]:
             m = re.search(p, text)
             if m:
                 return int(m.group(1))
-        # 학위 유형으로 추정
+        # ② 학교명에 '전문대학' 포함 여부 ('전문대학교'는 4년제이므로 제외)
+        if re.search(r"전문대학(?!교)", text):
+            if re.search(r"3\s*년\s*제|수업연한\s*[：:\s]*3", text):
+                return 3
+            return 2
+        # ③ 학위 종류 (전문학사 = 2·3년제)
         if "전문학사" in text:
             return 2
+        # ④ '대학교' 명시이면 4년제 확정
+        if re.search(r"[가-힣]+대학교", text):
+            return 4
         return None
 
     @staticmethod
